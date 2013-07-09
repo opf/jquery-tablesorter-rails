@@ -1,9 +1,10 @@
 Changelog
 ===
-#### v1.4.1 - themilkman fork
+#### v1.5.0
 
 * Upgrade tablesorter to v2.10.8
 * Rails 4 compatibility
+* Gem is now maintained by Erik-B. Ernst (@themilkman). Special thanks to Jun Lin (@linjunpop) for his work!
 
 #### v1.4.1
 
