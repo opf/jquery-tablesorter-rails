@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/themilkman/jquery-tablesorter-rails"
   s.summary     = "Simple integration of jquery-tablesorter into the asset pipeline."
   s.description = "Simple integration of jquery-tablesorter into the asset pipeline."
+  s.license = "MIT"
 
   s.files = Dir["{vendor,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.markdown"]
 
