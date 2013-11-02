@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 10/18/2013
+ * updated 10/30/2013
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -64,6 +64,11 @@
 			// if true, the table will remain the same height no matter how many records are displayed. The space is made up by an empty
 			// table row set to a height to compensate; default is false
 			fixedHeight: false,
+
+			// count child rows towards the set page size? (set true if it is a visible table row within the pager)
+			// if true, child row(s) may not appear to be attached to its parent row, may be split across pages or
+			// may distort the table if rowspan or cellspans are included.
+			countChildRows: false,
 
 			// remove rows from the table to speed up the sort of large tables.
 			// setting this to false, only hides the non-visible rows; needed if you plan to add/remove rows with the pager enabled.
@@ -199,7 +204,7 @@
 					if ( !rows[i].className.match(f) ) {
 						rows[i].style.display = ( j >= s && j < e ) ? '' : 'none';
 						// don't count child rows
-						j += rows[i].className.match(c.cssChildRow + '|' + c.selectorRemove.slice(1)) ? 0 : 1;
+						j += rows[i].className.match(c.cssChildRow + '|' + c.selectorRemove.slice(1)) && !p.countChildRows ? 0 : 1;
 					}
 				}
 			}
@@ -524,10 +529,11 @@
 		};
 
 		$this.appender = function(table, rows) {
-			var p = table.config.pager;
+			var c = table.config,
+				p = c.pager;
 			if ( !p.ajax ) {
-				table.config.rowsCopy = rows;
-				p.totalRows = rows.length;
+				c.rowsCopy = rows;
+				p.totalRows = p.countChildRows ? c.$tbodies.eq(0).children().length : rows.length;
 				p.size = $.data(table, 'pagerLastSize') || p.size;
 				p.totalPages = Math.ceil( p.totalRows / ( p.size || 10 ) );
 				renderTable(table, rows, p);
