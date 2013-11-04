@@ -2,9 +2,11 @@
 
 [![Gem Version](https://badge.fury.io/rb/jquery-tablesorter.png)](http://badge.fury.io/rb/jquery-tablesorter)
 
+**Please note:** This is the ***jquery-tablesorter-rails 3.x gem development branch*** based on the jquery-tablesorter [development branch]. If you wish to use the common version 2.x of jquery-tablesorter-rails gem, use the master branch.
+
 Simple integration of jquery-tablesorter into the asset pipeline.
 
-Current tablesorter version: 2.13.2 (11/2/2013), [documentation]
+Current tablesorter version: 3.0.1 beta (11/2/2013), [documentation]
 
 Any issue associate with the js/css files, please report to [Mottie's fork].
 
@@ -95,5 +97,6 @@ pager theme:
 
 
 [Mottie's fork]: https://github.com/Mottie/tablesorter
+[development branch]: https://github.com/Mottie/tablesorter/tree/development
 [documentation]: http://mottie.github.com/tablesorter/docs/index.html
 

@@ -1,5 +1,11 @@
 Changelog
 ===
+#### v3.0.1 (2013-11-04)
+
+* This is the new (development) branch for jquery-tablesorter 3 releases. Please note that these versions might not be as stable as the 2.x versions. Also I might not have tested them personally.
+* Adopted jquery-tablesorter versioning for further versions. Version number will go along with jquery-tablesorter versions from now on.
+* Upgrade tablesorter to 3.0.1 beta.
+
 #### v1.8.0
 
 * Upgrade tablesorter to v2.13.2
