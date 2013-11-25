@@ -1,4 +1,4 @@
-/*! tableSorter 2.8+ widgets - updated 11/22/2013 (v2.14.1)
+/*! tableSorter 2.8+ widgets - updated 11/24/2013 (v2.14.2)
  *
  * Column Styles
  * Column Filters
@@ -635,13 +635,14 @@ ts.filter = {
 		c.$table.trigger('filterInit');
 	},
 	setDefaults: function(table, c, wo) {
-		var indx,
+		var indx, isArray,
 			filters = [],
 			columns = c.columns;
 		if (wo.filter_saveFilters && ts.storage) {
 			filters = ts.storage( table, 'tablesorter-filters' ) || [];
+			isArray = $.isArray(filters);
 			// make sure we're not just saving an empty array
-			if (filters.join('') === '') { filters = []; }
+			if (isArray && filters.join('') === '' || !isArray ) { filters = []; }
 		}
 		// if not filters saved, then check default settings
 		if (!filters.length) {
@@ -803,6 +804,7 @@ ts.filter = {
 			});
 	},
 	findRows: function(table, filters, combinedFilters) {
+		if (table.config.lastCombinedFilter === combinedFilters) { return; }
 		var cached, len, $rows, rowIndex, tbodyIndex, $tbody, $cells, columnIndex,
 			childRow, childRowText, exact, iExact, iFilter, lastSearch, matches, result,
 			searchFiltered, filterMatched, showRow, time,
