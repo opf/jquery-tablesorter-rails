@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 12/14/2013 (v2.14.4)
+ * updated 12/16/2013 (v2.14.5)
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -29,6 +29,9 @@
 			ajaxObject: {
 				dataType: 'json'
 			},
+
+			// set this to false if you want to block ajax loading on init
+			processAjaxOnInit: true,
 
 			// process ajax so that the following information is returned:
 			// [ total_rows (number), rows (array of arrays), headers (array; optional) ]
@@ -112,7 +115,7 @@
 			tp = Math.min( p.totalPages, p.filteredPages );
 			if ( p.updateArrows ) {
 				p.$container.find(p.cssFirst + ',' + p.cssPrev)[ ( dis || p.page === 0 ) ? a : r ](d);
-				p.$container.find(p.cssNext + ',' + p.cssLast)[ ( dis || p.page === tp - 1 ) ? a : r ](d);
+				p.$container.find(p.cssNext + ',' + p.cssLast)[ ( dis || p.page === tp - 1 || p.totalPages === 0 ) ? a : r ](d);
 			}
 		},
 
@@ -136,7 +139,7 @@
 				s = ( p.ajaxData && p.ajaxData.output ? p.ajaxData.output || p.output : p.output )
 					// {page} = one-based index; {page+#} = zero based index +/- value
 					.replace(/\{page([\-+]\d+)?\}/gi, function(m,n){
-						return p.page + (n ? parseInt(n, 10) : 1);
+						return p.totalPages ? p.page + (n ? parseInt(n, 10) : 1) : 0;
 					})
 					// {totalPages}, {extra}, {extra:0} (array) or {extra : key} (object)
 					.replace(/\{\w+(\s*:\s*\w+)?\}/gi, function(m){
@@ -272,7 +275,7 @@
 						//ensure a zero returned row count doesn't fail the logical ||
 						rr_count = result[t ? 1 : 0];
 						p.totalRows = isNaN(rr_count) ? p.totalRows || 0 : rr_count;
-						d = p.totalRows === 0 ? [] : result[t ? 0 : 1] || []; // row data
+						d = p.totalRows === 0 ? [""] : result[t ? 0 : 1] || []; // row data
 						th = result[2]; // headers
 					}
 					l = d.length;
@@ -290,12 +293,12 @@
 							tds += '</tr>';
 						}
 						// add rows to first tbody
-						c.$tbodies.eq(0).html( tds );
+						p.processAjaxOnInit ? c.$tbodies.eq(0).html( tds ) : p.processAjaxOnInit = true;
 					}
 					// only add new header text if the length matches
 					if ( th && th.length === hl ) {
 						hsh = $t.hasClass('hasStickyHeaders');
-						$sh = hsh ? c.$sticky.children('thead:first').children().children() : '';
+						$sh = hsh ? c.widgetOptions.$sticky.children('thead:first').children().children() : '';
 						$f = $t.find('tfoot tr:first').children();
 						// don't change td headers (may contain pager)
 						c.$headers.filter('th').each(function(j){

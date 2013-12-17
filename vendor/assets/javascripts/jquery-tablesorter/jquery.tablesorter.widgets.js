@@ -1,4 +1,4 @@
-/*! tableSorter 2.8+ widgets - updated 12/14/2013 (v2.14.4)
+/*! tableSorter 2.8+ widgets - updated 12/16/2013 (v2.14.5)
  *
  * Column Styles
  * Column Filters
@@ -1066,7 +1066,10 @@ ts.addWidget({
 		stickyHeaders_zIndex : 2 // The zIndex of the stickyHeaders, allows the user to adjust this to their needs
 	},
 	format: function(table, c, wo) {
-		if (c.$table.hasClass('hasStickyHeaders')) { return; }
+		// filter widget doesn't initialize on an empty table. Fixes #449
+		if ( c.$table.hasClass('hasStickyHeaders') || ($.inArray('filter', c.widgets) >= 0 && !c.$table.hasClass('hasFilters')) ) {
+			return;
+		}
 		var $cell,
 			$table = c.$table,
 			$attach = $(wo.stickyHeaders_attachTo),
@@ -1086,7 +1089,7 @@ ts.addWidget({
 					margin     : 0,
 					top        : stickyOffset,
 					left       : 0,
-					visibility : $attach.length ? 'visible' : 'hidden',
+					visibility : 'hidden',
 					zIndex     : wo.stickyHeaders_zIndex ? wo.stickyHeaders_zIndex : 2
 				}),
 			$stickyThead = $stickyTable.children('thead:first').addClass('tablesorter-stickyHeader ' + wo.stickyHeaders),
@@ -1105,8 +1108,8 @@ ts.addWidget({
 					spacing = parseInt($header.eq(0).css('border-left-width'), 10) * 2;
 				}
 				$stickyTable.css({
-					left : $attach.length ? parseInt($table.css('padding-left'), 10) +
-						parseInt($table.css('margin-left'), 10) + parseInt($table.css('border-left-width'), 10) :
+					left : $attach.length ? parseInt($attach.css('padding-left'), 10) +
+						parseInt($attach.css('margin-left'), 10) + parseInt($table.css('border-left-width'), 10) :
 						$thead.offset().left - $win.scrollLeft() - spacing,
 					width: $table.width()
 				});
