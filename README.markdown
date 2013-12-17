@@ -62,6 +62,7 @@ Avaliable theme names:
 * theme.black-ice
 * theme.blue
 * theme.bootstrap
+* theme.bootstrap_2
 * theme.dark
 * theme.default
 * theme.dropbox
