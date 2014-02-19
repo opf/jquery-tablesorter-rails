@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.10.0 (2014-02-19)
+
+* Upgrade tablesorter to v2.15.0
+* Updated copyright year, license information and added note about Bootstrap 2 theme in Readme
+
 #### v1.9.5 (2013-12-17)
 
 * Upgrade tablesorter to v2.14.5

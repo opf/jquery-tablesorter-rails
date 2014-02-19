@@ -4,7 +4,7 @@
 
 Simple integration of jquery-tablesorter into the asset pipeline.
 
-Current tablesorter version: 2.14.5 (12/16/2013), [documentation]
+Current tablesorter version: 2.15.0 (2/19/2014), [documentation]
 
 Any issue associate with the js/css files, please report to [Mottie's fork].
 
@@ -95,6 +95,10 @@ pager theme:
 4. Update `README.md` and `CHANGELOG.md`
 
 
+### Licensing
+
+* Licensed under the [MIT](http://www.opensource.org/licenses/mit-license.php) license.
+* Original jquery-tablesorter code is dual licensed under the [MIT](http://www.opensource.org/licenses/mit-license.php) and [GPL](http://www.gnu.org/licenses/gpl.html) licenses (see [Mottie's fork]).
+
 [Mottie's fork]: https://github.com/Mottie/tablesorter
 [documentation]: http://mottie.github.com/tablesorter/docs/index.html
-
