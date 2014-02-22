@@ -1,4 +1,4 @@
-/*! tableSorter 2.8+ widgets - updated 2/19/2014 (v2.15.1)
+/*! tableSorter 2.8+ widgets - updated 2/21/2014 (v2.15.3)
  *
  * Column Styles
  * Column Filters
@@ -571,11 +571,11 @@ ts.filter = {
 			} else {
 				// send false argument to force a new search; otherwise if the filter hasn't changed, it will return
 				filter = event.type === 'search' ? filter : event.type === 'updateComplete' ? c.$table.data('lastSearch') : '';
-				if (/(update|add)/.test(event.type)) {
+				if (/(update|add)/.test(event.type) && event.type !== "updateComplete") {
 					// force a new search since content has changed
 					c.lastCombinedFilter = null;
 				}
-				// pass true (dontSkip) to prevent the tablesorter.setFilters function from skipping the first input
+				// pass true (skipFirst) to prevent the tablesorter.setFilters function from skipping the first input
 				// ensures all inputs are updated when a search is triggered on the table $('table').trigger('search', [...]);
 				ts.filter.searching(table, filter, true);
 			}
@@ -758,22 +758,22 @@ ts.filter = {
 				( event.which >= 37 && event.which <= 40 ) || (event.which !== 13 && wo.filter_liveSearch === false) ) ) ) {
 					return;
 			}
-			// true flag in getFilters forces obtaining the latest values
-			ts.filter.searching( table, filters || ts.getFilters( table, true ), true );
+			// true flag tells getFilters to skip newest timed input
+			ts.filter.searching( table, '', true );
 		});
 		c.$table.bind('filterReset', function(){
 			$el.val('');
 		});
 	},
-	checkFilters: function(table, filter, dontSkip) {
+	checkFilters: function(table, filter, skipFirst) {
 		var c = table.config,
 			wo = c.widgetOptions,
 			filterArray = $.isArray(filter),
-			filters = (filterArray) ? filter : ts.getFilters(table),
+			filters = (filterArray) ? filter : ts.getFilters(table, true),
 			combinedFilters = (filters || []).join(''); // combined filter values
 		// add filter array back into inputs
 		if (filterArray) {
-			ts.setFilters( table, filters, false, dontSkip !== true );
+			ts.setFilters( table, filters, false, skipFirst !== true );
 		}
 		if (wo.filter_hideFilters) {
 			// show/hide filter row as needed
@@ -817,7 +817,7 @@ ts.filter = {
 						// $(':focus') needs jQuery 1.6+
 						if ( $(document.activeElement).closest('tr')[0] !== $filterRow[0] ) {
 							// don't hide row if any filter has a value
-							if (ts.getFilters(table).join('') === '') {
+							if (c.lastCombinedFilter === '') {
 								$filterRow.addClass('hideme');
 							}
 						}
@@ -850,7 +850,7 @@ ts.filter = {
 			anyMatchNotAllowedTypes = [ 'range', 'notMatch',  'operators' ],
 			// parse columns after formatter, in case the class is added at that point
 			parsed = c.$headers.map(function(columnIndex) {
-				return c.parsers && c.parsers[columnIndex].parsed || ( ts.getData ?
+				return c.parsers && c.parsers[columnIndex] && c.parsers[columnIndex].parsed || ( ts.getData ?
 					ts.getData(c.$headers.filter('[data-column="' + columnIndex + '"]:last'), c.headers[columnIndex], 'filter') === 'parsed' :
 					$(this).hasClass('filter-parsed') );
 			}).get();
@@ -1011,7 +1011,7 @@ ts.filter = {
 	},
 	buildSelect: function(table, column, updating, onlyavail) {
 		column = parseInt(column, 10);
-		var indx, rowIndex, tbodyIndex, len, currentValue, txt,
+		var indx, rowIndex, tbodyIndex, len, currentValue, txt, $filters,
 			c = table.config,
 			wo = c.widgetOptions,
 			$tbodies = c.$tbodies,
@@ -1054,7 +1054,12 @@ ts.filter = {
 			options += arry[indx] !== '' ? '<option value="' + txt + '"' + (currentValue === txt ? ' selected="selected"' : '') +
 				'>' + arry[indx] + '</option>' : '';
 		}
-		c.$table.find('thead').find('select.' + ts.css.filter + '[data-column="' + column + '"]')[ updating ? 'html' : 'append' ](options);
+		// update all selects in the same column (clone thead in sticky headers & any external selects) - fixes 473
+		$filters = ( c.$filters ? c.$filters : c.$table.children('thead') ).find('.' + ts.css.filter);
+		if (wo.filter_$externalFilters) {
+			$filters = $filters && $filters.length ? $filters.add(wo.filter_$externalFilters) : wo.filter_$externalFilters;
+		}
+		$filters.filter('select[data-column="' + column + '"]')[ updating ? 'html' : 'append' ](options);
 	},
 	buildDefault: function(table, updating) {
 		var columnIndex, $header,
@@ -1073,17 +1078,17 @@ ts.filter = {
 			}
 		}
 	},
-	searching: function(table, filter, dontSkip) {
+	searching: function(table, filter, skipFirst) {
 		if (typeof filter === 'undefined' || filter === true) {
 			var wo = table.config.widgetOptions;
 			// delay filtering
 			clearTimeout(wo.searchTimer);
 			wo.searchTimer = setTimeout(function() {
-				ts.filter.checkFilters(table, filter, dontSkip );
+				ts.filter.checkFilters(table, filter, skipFirst );
 			}, wo.filter_liveSearch ? wo.filter_searchDelay : 10);
 		} else {
 			// skip delay
-			ts.filter.checkFilters(table, filter, dontSkip);
+			ts.filter.checkFilters(table, filter, skipFirst);
 		}
 	}
 };
@@ -1110,7 +1115,7 @@ ts.getFilters = function(table, getRaw, setFilters, skipFirst) {
 				if ($column.length) {
 					// move the latest search to the first slot in the array
 					$column = $column.sort(function(a, b){
-						return $(a).attr('data-lastSearchTime') <= $(b).attr('data-lastSearchTime');
+						return $(b).attr('data-lastSearchTime') - $(a).attr('data-lastSearchTime');
 					});
 					if ($.isArray(setFilters)) {
 						// skip first (latest input) to maintain cursor position while typing
@@ -1224,8 +1229,8 @@ ts.addWidget({
 		// fix clone ID, if it exists - fixes #271
 		if ($stickyTable.attr('id')) { $stickyTable[0].id += wo.stickyHeaders_cloneId; }
 		// clear out cloned table, except for sticky header
-		// include caption & filter row (fixes #126 & #249)
-		$stickyTable.find('thead:gt(0), tr.sticky-false, tbody, tfoot').remove();
+		// include caption & filter row (fixes #126 & #249) - don't remove cells to get correct cell indexing
+		$stickyTable.find('thead:gt(0), tr.sticky-false, tbody, tfoot').hide();
 		if (!wo.stickyHeaders_includeCaption) {
 			$stickyTable.find('caption').remove();
 		} else {

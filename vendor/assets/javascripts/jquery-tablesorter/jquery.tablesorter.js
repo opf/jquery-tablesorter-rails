@@ -1,5 +1,5 @@
 /**!
-* TableSorter 2.15.1 - Client-side table sorting with ease!
+* TableSorter 2.15.4 - Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
 * Copyright (c) 2007 Christian Bach
@@ -24,7 +24,7 @@
 
 			var ts = this;
 
-			ts.version = "2.15.1";
+			ts.version = "2.15.4";
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -777,7 +777,7 @@
 					$table = c.$table;
 				// apply easy methods that trigger bound events
 				$table
-				.unbind('sortReset update updateRows updateCell updateAll addRows sorton appendCache applyWidgetId applyWidgets refreshWidgets destroy mouseup mouseleave '.split(' ').join('.tablesorter '))
+				.unbind('sortReset update updateRows updateCell updateAll addRows sorton appendCache updateCache applyWidgetId applyWidgets refreshWidgets destroy mouseup mouseleave '.split(' ').join('.tablesorter '))
 				.bind("sortReset.tablesorter", function(e){
 					e.stopPropagation();
 					c.sortList = [];
@@ -874,6 +874,17 @@
 				.bind("appendCache.tablesorter", function(e, callback, init) {
 					e.stopPropagation();
 					appendToTable(table, init);
+					if (typeof callback === "function") {
+						callback(table);
+					}
+				})
+				.bind("updateCache.tablesorter", function(e, callback){
+					// rebuild parsers
+					if (!c.parsers) {
+						buildParserCache(table);
+					}
+					// rebuild the cache map
+					buildCache(table);
 					if (typeof callback === "function") {
 						callback(table);
 					}
@@ -1076,6 +1087,8 @@
 					if (c.delayInit && isEmptyObject(c.cache)) { buildCache(table); }
 					// jQuery v1.2.6 doesn't have closest()
 					cell = /TH|TD/.test(this.tagName) ? this : $(this).parents('th, td')[0];
+					// reference original table headers and find the same cell
+					cell = c.$headers[ $headers.index( cell ) ];
 					if (!cell.sortDisabled) {
 						initSort(table, cell, e);
 					}
