@@ -1,6 +1,12 @@
 Changelog
 ===
 
+#### v1.10.3 (2014-02-23)
+
+* Upgrade tablesorter to v2.15.5
+* FIX: Added accidentally missing parsers and widgets to gem
+* Minor structural code changes in Rakefile, updated Readme
+
 #### v1.10.2 (2014-02-22)
 
 * Upgrade tablesorter to v2.15.4
