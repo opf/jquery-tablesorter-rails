@@ -1,4 +1,4 @@
-/* Pager widget (beta) for TableSorter 2/23/2014 (v2.15.5) */
+/* Pager widget (beta) for TableSorter 3/7/2014 (v2.15.6) */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($){
 "use strict";
@@ -150,7 +150,6 @@ tsp = ts.pager = {
 		// page size selector
 		p.$size = p.$container.find(s.pageSize);
 		p.totalRows = c.$tbodies.eq(0).children().length;
-
 		p.oldAjaxSuccess = p.oldAjaxSuccess || wo.pager_ajaxObject.success;
 		c.appender = tsp.appender;
 		if (ts.filter && $.inArray('filter', c.widgets) >= 0) {
@@ -315,7 +314,7 @@ tsp = ts.pager = {
 		}
 	},
 
-	updatePageDisplay: function(table, c, flag) {
+	updatePageDisplay: function(table, c, completed) {
 		var i, pg, s, out,
 			wo = c.widgetOptions,
 			p = c.pager,
@@ -361,7 +360,7 @@ tsp = ts.pager = {
 			}
 		}
 		tsp.pagerArrows(c);
-		if (p.initialized && flag !== false) {
+		if (p.initialized && completed !== false) {
 			c.$table.trigger('pagerComplete', c);
 			// save pager info to storage
 			if (wo.pager_savePages && ts.storage) {
@@ -453,6 +452,7 @@ tsp = ts.pager = {
 				}
 				ts.showError(table, exception.message + ' (' + xhr.status + ')');
 				c.$tbodies.eq(0).empty();
+				p.totalRows = 0;
 			} else {
 				// process ajax object
 				if (!$.isArray(result)) {
@@ -463,7 +463,7 @@ tsp = ts.pager = {
 				} else {
 					// allow [ total, rows, headers ]  or [ rows, total, headers ]
 					t = isNaN(result[0]) && !isNaN(result[1]);
-					//ensure a zero returned row count doesn't fail the logical ||
+					// ensure a zero returned row count doesn't fail the logical ||
 					rr_count = result[t ? 1 : 0];
 					p.totalRows = isNaN(rr_count) ? p.totalRows || 0 : rr_count;
 					d = p.totalRows === 0 ? [""] : result[t ? 0 : 1] || []; // row data
@@ -521,7 +521,8 @@ tsp = ts.pager = {
 			}
 			// make sure last pager settings are saved, prevents multiple server side calls with
 			// the same parameters
-			p.last.totalPages =  p.totalPages = Math.ceil( p.totalRows / ( p.size || 10 ) );
+			p.totalPages = Math.ceil( p.totalRows / ( p.size || 10 ) );
+			p.last.totalRows = p.totalRows;
 			p.last.currentFilters = p.currentFilters;
 			p.last.sortList = (c.sortList || []).join(',');
 			tsp.updatePageDisplay(table, c);
@@ -650,6 +651,9 @@ tsp = ts.pager = {
 		wo.pager_startPage = p.page;
 		wo.pager_size = p.size;
 		c.$table.trigger('applyWidgets');
+		if (table.isUpdating) {
+			c.$table.trigger('updateComplete');
+		}
 
 	},
 
@@ -680,15 +684,19 @@ tsp = ts.pager = {
 		});
 	},
 
-	moveToPage: function(table, p, flag) {
+	moveToPage: function(table, p, pageMoved) {
 		if ( p.isDisabled ) { return; }
 		var c = table.config,
 			l = p.last,
 			pg = Math.min( p.totalPages, p.filteredPages );
 		if ( p.page < 0 ) { p.page = 0; }
 		if ( p.page > ( pg - 1 ) && pg !== 0 ) { p.page = pg - 1; }
-		// don't allow rendering multiple times on the same page/size/totalpages/filters/sorts
-		if ( l.page === p.page && l.size === p.size && l.totalPages === p.totalPages &&
+		// fixes issue where one current filter is [] and the other is ['','',''],
+		// making the next if comparison think the filters as different. Fixes #202.
+		l.currentFilters = (l.currentFilters || []).join('') === '' ? [] : l.currentFilters;
+		p.currentFilters = (p.currentFilters || []).join('') === '' ? [] : p.currentFilters;
+		// don't allow rendering multiple times on the same page/size/totalRows/filters/sorts
+		if ( l.page === p.page && l.size === p.size && l.totalRows === p.totalRows &&
 			(l.currentFilters || []).join(',') === (p.currentFilters || []).join(',') &&
 			l.sortList === (c.sortList || []).join(',') ) {
 				return;
@@ -701,7 +709,7 @@ tsp = ts.pager = {
 			size : p.size,
 			// fixes #408; modify sortList otherwise it auto-updates
 			sortList : (c.sortList || []).join(','),
-			totalPages : p.totalPages,
+			totalRows : p.totalRows,
 			currentFilters : p.currentFilters || []
 		};
 		if (p.ajax) {
@@ -710,8 +718,11 @@ tsp = ts.pager = {
 			tsp.renderTable(table, c.rowsCopy);
 		}
 		$.data(table, 'pagerLastPage', p.page);
-		if (p.initialized && flag !== false) {
+		if (p.initialized && pageMoved !== false) {
 			c.$table.trigger('pageMoved', c);
+			if (!p.ajax && table.isUpdating) {
+				c.$table.trigger('updateComplete');
+			}
 		}
 	},
 
@@ -800,6 +811,8 @@ tsp = ts.pager = {
 			tsp.moveToPage(table, p, true);
 			// update display here in case all rows are removed
 			tsp.updatePageDisplay(table, c, false);
+		} else {
+			tsp.moveToPage(table, p, true);
 		}
 	}
 

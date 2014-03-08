@@ -4,7 +4,7 @@
 
 Simple integration of jquery-tablesorter into the asset pipeline.
 
-Current tablesorter version: 2.15.5 (2/23/2014), [documentation]
+Current tablesorter version: 2.15.6 (3/7/2014), [documentation]
 
 Any issue associate with the js/css files, please report to [Mottie's fork].
 
@@ -25,6 +25,7 @@ Or install it yourself as:
 ## Requirements
 
 Rails 3.1 and higher (tested up to 4.1)
+
 Tested with ruby 1.9.3 - 2.1.0
 
 ## Usage
@@ -37,7 +38,7 @@ In your `application.js`
 //= require jquery-tablesorter
 ```
 
-This will require all jquery-tablesorter files (exclude addons, widgets, ...).
+This will require all jquery-tablesorter files (excluding addons, widgets, ...).
 
 Or you can include single file with:
 
@@ -48,6 +49,7 @@ Or you can include single file with:
 //= require jquery-tablesorter/addons/pager/jquery.tablesorter.pager
 //= require jquery-tablesorter/widgets/widget-repeatheaders
 //= require jquery-tablesorter/parsers/parser-metric
+//= require jquery-tablesorter/extras/jquery.quicksearch
 ```
 
 ### Stylesheet files
