@@ -1,4 +1,4 @@
-/*! tableSorter 2.15+ widgets - updated 3/9/2014 (v2.15.7)
+/*! tableSorter 2.15+ widgets - updated 3/12/2014 (v2.15.8)
  *
  * Column Styles
  * Column Filters
@@ -765,7 +765,7 @@ ts.filter = {
 					return;
 			}
 			// true flag tells getFilters to skip newest timed input
-			ts.filter.searching( table, '', true );
+			ts.filter.searching( table, true, true );
 		});
 		c.$table.bind('filterReset', function(){
 			$el.val('');
