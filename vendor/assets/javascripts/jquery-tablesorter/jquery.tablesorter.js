@@ -1,5 +1,5 @@
 /**!
-* TableSorter 2.15.10 - Client-side table sorting with ease!
+* TableSorter 2.15.11 - Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
 * Copyright (c) 2007 Christian Bach
@@ -24,7 +24,7 @@
 
 			var ts = this;
 
-			ts.version = "2.15.10";
+			ts.version = "2.15.11";
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -296,6 +296,12 @@
 							}
 							tc.cache[k].row.push(c);
 							for (j = 0; j < totalCells; ++j) {
+								if (typeof parsers[j] === 'undefined') {
+									if (tc.debug) {
+										log('No parser found for cell:', c[0].cells[j], 'does it have a header?');
+									}
+									continue;
+								}
 								t = getElementText(table, c[0].cells[j], j);
 								// allow parsing if the string is empty, previously parsing would change it to zero,
 								// in case the parser needs to extract data from the table cell attributes
@@ -381,7 +387,7 @@
 				var matrix = [],
 				lookup = {},
 				cols = 0, // determine the number of columns
-				trs = $(t).find('thead:eq(0), tfoot').children('tr'), // children tr in tfoot - see issue #196
+				trs = $(t).children('thead, tfoot').children('tr'), // children tr in tfoot - see issue #196 & #547
 				i, j, k, l, c, cells, rowIndex, cellId, rowSpan, colSpan, firstAvailCol, matrixrow;
 				for (i = 0; i < trs.length; i++) {
 					cells = trs[i].cells;

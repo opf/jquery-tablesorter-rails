@@ -1,4 +1,4 @@
-/*! tableSorter 2.15+ widgets - updated 3/12/2014 (v2.15.8)
+/*! tableSorter 2.15+ widgets - updated 3/18/2014 (v2.15.11)
  *
  * Column Styles
  * Column Filters
@@ -680,7 +680,7 @@ ts.filter = {
 		for (column = 0; column < columns; column++) {
 			buildFilter += '<td></td>';
 		}
-		c.$filters = $(buildFilter += '</tr>').appendTo( c.$table.find('thead').eq(0) ).find('td');
+		c.$filters = $(buildFilter += '</tr>').appendTo( c.$table.children('thead').eq(0) ).find('td');
 		// build each filter input
 		for (column = 0; column < columns; column++) {
 			disabled = false;
