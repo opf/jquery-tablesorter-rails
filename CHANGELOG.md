@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.x.x (not released yet)
+
+* Remove all vendor files before updating from tablesorter repository
+** Removed unused images
+
 #### v1.10.7 (2014-03-11)
 
 * Upgrade tablesorter to v2.15.11
