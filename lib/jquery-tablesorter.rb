@@ -1,4 +1,4 @@
-require "jquery-tablesorter/engine"
+require 'jquery-tablesorter/engine'
 
 module JqueryTablesorter
 end

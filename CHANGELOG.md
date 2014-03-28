@@ -5,6 +5,7 @@ Changelog
 
 * Remove all vendor files before updating from tablesorter repository
 ** Removed unused images
+* Some minor code changes and optimizations, updated Readme
 
 #### v1.10.7 (2014-03-11)
 

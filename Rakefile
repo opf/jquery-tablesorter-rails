@@ -11,65 +11,48 @@ namespace :jquery_tablesorter do
     # javascripts
     #
     javascript_dir = File.join('vendor', 'assets', 'javascripts', 'jquery-tablesorter')
-    FileUtils.mkdir_p(javascript_dir)
-    FileUtils.rm_rf("#{javascript_dir}/.", :secure => true)
-    Dir.glob(File.join('tablesorter', 'js', '*.js')).reject{|file| file =~ /.min.js\Z/}.each do |file|
-      FileUtils.cp file, javascript_dir, :verbose => true
-    end
+    copy_files(Dir.glob(File.join('tablesorter', 'js', '*.js')).reject{|file| file =~ /.min.js\Z/}, javascript_dir)
 
     # stylesheets
     #
     stylesheet_dir = File.join('vendor', 'assets', 'stylesheets', 'jquery-tablesorter')
-    FileUtils.mkdir_p(stylesheet_dir)
-    FileUtils.rm_rf("#{stylesheet_dir}/.", :secure => true)
-    Dir.glob(File.join('tablesorter', 'css', '*.css')).each do |file|
-      FileUtils.cp file, stylesheet_dir, :verbose => true
-    end
+    copy_files(Dir.glob(File.join('tablesorter', 'css', '*.css')), stylesheet_dir)
 
     # images
     #
     images_dir = File.join('vendor', 'assets', 'images', 'jquery-tablesorter')
-    FileUtils.mkdir_p(images_dir)
-    FileUtils.rm_rf("#{images_dir}/.", :secure => true)
-    Dir.glob(File.join('tablesorter', 'css', 'images', '*')).each do |file|
-      FileUtils.cp file, images_dir, :verbose => true
-    end
+    copy_files(Dir.glob(File.join('tablesorter', 'css', 'images', '*')), images_dir)
 
     # addons
     #
     ## pager
-    pager_stylesheet_dir =  File.join(stylesheet_dir, 'addons', 'pager')
-    FileUtils.mkdir_p(pager_stylesheet_dir)
-    FileUtils.rm_rf("#{pager_stylesheet_dir}/.", :secure => true)
-    FileUtils.cp File.join('tablesorter', 'addons', 'pager', 'jquery.tablesorter.pager.css'),
-      pager_stylesheet_dir,
-      :verbose => true
+    pager_stylesheet_dir = File.join(stylesheet_dir, 'addons', 'pager')
+    copy_files([File.join('tablesorter', 'addons', 'pager', 'jquery.tablesorter.pager.css')], pager_stylesheet_dir)
 
     pager_javascript_dir = File.join(javascript_dir, 'addons', 'pager')
-    FileUtils.mkdir_p(pager_javascript_dir)
-    FileUtils.rm_rf("#{pager_javascript_dir}/.", :secure => true)
-    FileUtils.cp File.join('tablesorter', 'addons', 'pager', 'jquery.tablesorter.pager.js'),
-      pager_javascript_dir,
-      :verbose => true
+    copy_files([File.join('tablesorter', 'addons', 'pager', 'jquery.tablesorter.pager.js')], pager_javascript_dir)
 
-    pager_images_dir = File.join(images_dir, 'addons', 'pager')
-    FileUtils.mkdir_p(pager_images_dir)
-    FileUtils.rm_rf("#{pager_images_dir}/.", :secure => true)
-    FileUtils.cp_r File.join('tablesorter', 'addons', 'pager', 'icons'), pager_images_dir,
-      :verbose => true
+    pager_images_dir = File.join(images_dir, 'addons', 'pager', 'icons')
+    copy_files(Dir.glob(File.join('tablesorter', 'addons', 'pager', 'icons', '*')), pager_images_dir)
 
 
     # parsers, widgets and extras
     #
     %w(parsers widgets extras).each do |folder|
       folder_javascript_dir = File.join(javascript_dir, folder)
-      FileUtils.mkdir_p(folder_javascript_dir)
-      FileUtils.rm_rf("#{folder_javascript_dir}/.", :secure => true)
-      Dir.glob(File.join('tablesorter', 'js', folder, '*.js')).reject{|file| file =~ /.min.js\Z/}.each do |file|
-        FileUtils.cp file, folder_javascript_dir, :verbose => true
-      end
+      files = Dir.glob(File.join('tablesorter', 'js', folder, '*.js')).reject{|file| file =~ /.min.js\Z/}
+      copy_files(files, folder_javascript_dir)
     end
 
+  end
+
+  def copy_files(files, target_dir)
+    FileUtils.mkdir_p(target_dir)
+    FileUtils.rm_rf("#{target_dir}/.", :secure => true)
+
+    files.each do |file|
+      FileUtils.cp(file, target_dir, :verbose => true)
+    end
   end
 
   desc 'Sanitize image paths'
