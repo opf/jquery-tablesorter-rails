@@ -1,5 +1,5 @@
 /**!
-* TableSorter 2.15.12 - Client-side table sorting with ease!
+* TableSorter 2.15.13 - Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
 * Copyright (c) 2007 Christian Bach
@@ -24,7 +24,7 @@
 
 			var ts = this;
 
-			ts.version = "2.15.12";
+			ts.version = "2.15.13";
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -290,7 +290,8 @@
 							c = $(b[k].rows[i]);
 							cols = [];
 							// if this is a child row, add it to the last row's children and continue to the next row
-							if (c.hasClass(tc.cssChildRow)) {
+							// ignore child row class, if it is the first row
+							if (c.hasClass(tc.cssChildRow) && i !== 0) {
 								tc.cache[k].row[tc.cache[k].row.length - 1] = tc.cache[k].row[tc.cache[k].row.length - 1].add(c);
 								// add "hasChild" class name to parent row
 								if (!c.prev().hasClass(tc.cssChildRow)) {
@@ -785,6 +786,7 @@
 						resortComplete($table, callback);
 					}, true]);
 				} else {
+					$table.trigger('applyWidgets');
 					resortComplete($table, callback);
 				}
 			}
@@ -891,7 +893,9 @@
 					// sort the table and append it to the dom
 					multisort(table);
 					appendToTable(table, init);
-					$table.trigger("sortEnd", this);
+					$table
+						.trigger("sortEnd", this)
+						.trigger('applyWidgets');
 					if (typeof callback === "function") {
 						callback(table);
 					}
