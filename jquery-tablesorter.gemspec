@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.description = 'Simple integration of jquery-tablesorter into the asset pipeline.'
   s.license     = 'MIT'
 
-  s.files = Dir["{vendor,lib}/**/*"] + %w( MIT-LICENSE Rakefile README.md )
+  s.files       = Dir['{vendor,lib}/**/*'] + %w( MIT-LICENSE Rakefile README.md )
 
   s.add_dependency 'railties', '>= 3.1', '< 5'
 end
