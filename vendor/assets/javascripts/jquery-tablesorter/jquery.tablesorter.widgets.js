@@ -1,4 +1,4 @@
-/*! tableSorter 2.16+ widgets - updated 4/23/2014 (v2.16.0)
+/*! tableSorter 2.16+ widgets - updated 4/27/2014 (v2.16.2)
  *
  * Column Styles
  * Column Filters
@@ -176,7 +176,7 @@ ts.addWidget({
 	id: "uitheme",
 	priority: 10,
 	format: function(table, c, wo) {
-		var time, classes, $header, $icon, $tfoot,
+		var i, time, classes, $header, $icon, $tfoot,
 			themesAll = ts.themes,
 			$table = c.$table,
 			$headers = c.$headers,
@@ -222,10 +222,10 @@ ts.addWidget({
 				$headers.find('.' + ts.css.filterRow).addClass(themes.filterRow);
 			}
 		}
-		$.each($headers, function() {
-			$header = $(this);
+		for (i = 0; i < c.columns; i++) {
+			$header = c.$headers.add(c.$extraHeaders).filter('[data-column="' + i + '"]');
 			$icon = (ts.css.icon) ? $header.find('.' + ts.css.icon) : $header;
-			if (this.sortDisabled) {
+			if (c.$headers.filter('[data-column="' + i + '"]:last')[0].sortDisabled) {
 				// no sort arrows for disabled columns!
 				$header.removeClass(remove);
 				$icon.removeClass(remove + ' ' + themes.icons);
@@ -237,7 +237,7 @@ ts.addWidget({
 				$header[classes === themes.sortNone ? 'removeClass' : 'addClass'](themes.active);
 				$icon.removeClass(remove).addClass(classes);
 			}
-		});
+		}
 		if (c.debug) {
 			ts.benchmark("Applying " + theme + " theme", time);
 		}
@@ -856,7 +856,7 @@ ts.filter = {
 		if (table.config.lastCombinedFilter === combinedFilters) { return; }
 		var cached, len, $rows, cacheIndex, rowIndex, tbodyIndex, $tbody, $cells, columnIndex,
 			childRow, childRowText, exact, iExact, iFilter, lastSearch, matches, result,
-			searchFiltered, filterMatched, showRow, time,
+			notFiltered, searchFiltered, filterMatched, showRow, time,
 			anyMatch, iAnyMatch, rowArray, rowText, iRowText, rowCache,
 			c = table.config,
 			wo = c.widgetOptions,
@@ -887,11 +887,23 @@ ts.filter = {
 				searchFiltered = true;
 				lastSearch = c.lastSearch || c.$table.data('lastSearch') || [];
 				$.each(filters, function(indx, val) {
-					// check for changes from beginning of filter; but ignore if there is a logical "or" in the string
-					searchFiltered = (val || '').indexOf(lastSearch[indx]) === 0 && searchFiltered && !/(\s+or\s+|\|)/g.test(val || '');
+					// search already filtered rows if...
+					searchFiltered = searchFiltered &&
+						// there are changes from beginning of filter
+						(val || '').indexOf(lastSearch[indx]) === 0 &&
+						// if there is not a logical "or" in the string
+						!/(\s+or\s+|\|)/g.test(val || '') &&
+						// if we are not doing exact matches
+						!/[=\"]/.test(lastSearch[indx]) &&
+						// if filtering using a select without a "filter-match" class (exact match) - fixes #593
+						!( val !== '' && wo.filter_functions && wo.filter_functions[indx] === true && !c.$headers.filter('[data-column="' + indx + '"]:last').hasClass('filter-match') );
 				});
+				notFiltered = $rows.not('.' + wo.filter_filteredRow).length;
 				// can't search when all rows are hidden - this happens when looking for exact matches
-				if (searchFiltered && $rows.not('.' + wo.filter_filteredRow).length === 0) { searchFiltered = false; }
+				if (searchFiltered && notFiltered === 0) { searchFiltered = false; }
+				if (c.debug) {
+					ts.log( "Searching through " + ( searchFiltered && notFiltered < len ? notFiltered : "all" ) + " rows" );
+				}
 				if ((wo.filter_$anyMatch && wo.filter_$anyMatch.length) || filters[c.columns]) {
 					anyMatch = wo.filter_$anyMatch && wo.filter_$anyMatch.val() || filters[c.columns] || '';
 					if (c.sortLocaleCompare) {
@@ -1213,6 +1225,7 @@ ts.addWidget({
 		stickyHeaders : '',       // extra class name added to the sticky header row
 		stickyHeaders_attachTo : null, // jQuery selector or object to attach sticky header to
 		stickyHeaders_offset : 0, // number or jquery selector targeting the position:fixed element
+		stickyHeaders_filteredToTop: true, // scroll table top into view after filtering
 		stickyHeaders_cloneId : '-sticky', // added to table ID, if it exists
 		stickyHeaders_addResizeEvent : true, // trigger "resize" event on headers
 		stickyHeaders_includeCaption : true, // if false and a caption exist, it won't be included in the sticky header
@@ -1223,8 +1236,7 @@ ts.addWidget({
 		if ( c.$table.hasClass('hasStickyHeaders') || ($.inArray('filter', c.widgets) >= 0 && !c.$table.hasClass('hasFilters')) ) {
 			return;
 		}
-		var $cell,
-			$table = c.$table,
+		var $table = c.$table,
 			$attach = $(wo.stickyHeaders_attachTo),
 			$thead = $table.children('thead:first'),
 			$win = $attach.length ? $attach : $(window),
@@ -1296,19 +1308,6 @@ ts.addWidget({
 		// update sticky header class names to match real header after sorting
 		$table
 			.addClass('hasStickyHeaders')
-			.bind('sortEnd.tsSticky', function() {
-				$header.filter(':visible').each(function(indx) {
-					$cell = $stickyCells.filter(':visible').eq(indx)
-						.attr('class', $(this).attr('class'))
-						// remove processing icon
-						.removeClass(ts.css.processing + ' ' + c.cssProcessing);
-					if (c.cssIcon) {
-						$cell
-							.find('.' + ts.css.icon)
-							.attr('class', $(this).find('.' + ts.css.icon).attr('class'));
-					}
-				});
-			})
 			.bind('pagerComplete.tsSticky', function() {
 				resizeHeader();
 			});
@@ -1355,11 +1354,11 @@ ts.addWidget({
 				var $td = $(document.activeElement).closest('td'),
 					column = $td.parent().children().index($td);
 				// only scroll if sticky header is active
-				if ($stickyTable.hasClass(ts.css.stickyVis)) {
+				if ($stickyTable.hasClass(ts.css.stickyVis) && wo.stickyHeaders_filteredToTop) {
 					// scroll to original table (not sticky clone)
 					window.scrollTo(0, $table.position().top);
-					// give same input/select focus
-					if (column >= 0) {
+					// give same input/select focus; check if c.$filters exists; fixes #594
+					if (column >= 0 && c.$filters) {
 						c.$filters.eq(column).find('a, select, input').filter(':visible').focus();
 					}
 				}
@@ -1373,7 +1372,7 @@ ts.addWidget({
 	remove: function(table, c, wo) {
 		c.$table
 			.removeClass('hasStickyHeaders')
-			.unbind('sortEnd.tsSticky pagerComplete.tsSticky')
+			.unbind('pagerComplete.tsSticky')
 			.find('.' + ts.css.sticky).remove();
 		if (wo.$sticky && wo.$sticky.length) { wo.$sticky.remove(); } // remove cloned table
 		// don't unbind if any table on the page still has stickyheaders applied

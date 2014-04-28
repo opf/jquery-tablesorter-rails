@@ -10,7 +10,7 @@
 
 	Resizable scroller widget for the jQuery tablesorter plugin
 
-	Version 2.0 - modified by Rob Garrison (4/12/2013; updated 4/20/2014 for tablesorter v2.16.0)
+	Version 2.0 - modified by Rob Garrison (4/12/2013; updated 4/27/2014 for tablesorter v2.16.2)
 	Requires jQuery v1.7+
 	Requires the tablesorter plugin, v2.8+, available at http://mottie.github.com/tablesorter/docs/
 
@@ -109,23 +109,7 @@ ts.addWidget({
 				.wrap('<div class="tablesorter-scroller-header" style="width:' + $tbl.width() + ';" />')
 				.find('.' + ts.css.header);
 
-			$tbl
-				.wrap('<div class="tablesorter-scroller-table" style="height:' + h + 'px;width:' + $tbl.width() + ';overflow-y:scroll;" />')
-				.unbind('sortEnd.tsScroller')
-				.bind('sortEnd.tsScroller', function(){
-					c.$headers.each(function(i){
-						var t = $cells.eq(i);
-						t
-							.attr('class', $(this).attr('class'))
-							// remove processing icon
-							.removeClass(ts.css.processing + ' ' + c.cssProcessing);
-						if (ts.css.icon){
-							t
-								.find('.' + ts.css.icon)
-								.attr('class', $(this).find('.' + ts.css.icon).attr('class'));
-						}
-					});
-				});
+			$tbl.wrap('<div class="tablesorter-scroller-table" style="height:' + h + 'px;width:' + $tbl.width() + ';overflow-y:scroll;" />')
 
 			// make scroller header sortable
 			ts.bindEvents(table, $cells);

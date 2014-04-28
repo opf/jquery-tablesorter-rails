@@ -1,4 +1,4 @@
-/*! tablesorter math widget - beta testing
+/*! tablesorter math widget - beta - updated 4/27/2014 (v2.16.2)
 * Requires tablesorter v2.16+ and jQuery 1.7+
 * by Rob Garrison
 */
@@ -149,7 +149,8 @@
 		},
 
 		output : function($cell, wo, value, arry) {
-			var result = ts.formatMask( wo.math_mask, value );
+			// get mask from cell data-attribute: data-math-mask="#,##0.00"
+			var result = ts.formatMask( $cell.attr('data-' + wo.math_data + '-mask') || wo.math_mask, value );
 			if ($.isFunction(wo.math_complete)) {
 				result = wo.math_complete($cell, wo, result, value, arry);
 			}

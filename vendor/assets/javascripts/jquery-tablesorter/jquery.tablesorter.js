@@ -1,5 +1,5 @@
 /**!
-* TableSorter 2.16.1 - Client-side table sorting with ease!
+* TableSorter 2.16.2 - Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
 * Copyright (c) 2007 Christian Bach
@@ -24,7 +24,7 @@
 
 			var ts = this;
 
-			ts.version = "2.16.1";
+			ts.version = "2.16.2";
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -489,33 +489,33 @@
 			}
 
 			function setHeadersCss(table) {
-				var f, i, j, l,
+				var f, i, j,
 					c = table.config,
 					list = c.sortList,
+					len = list.length,
 					none = ts.css.sortNone + ' ' + c.cssNone,
 					css = [ts.css.sortAsc + ' ' + c.cssAsc, ts.css.sortDesc + ' ' + c.cssDesc],
 					aria = ['ascending', 'descending'],
 					// find the footer
-					$t = $(table).find('tfoot tr').children().removeClass(css.join(' '));
+					$t = $(table).find('tfoot tr').children().add(c.$extraHeaders).removeClass(css.join(' '));
 				// remove all header information
 				c.$headers
 					.removeClass(css.join(' '))
 					.addClass(none).attr('aria-sort', 'none');
-				l = list.length;
-				for (i = 0; i < l; i++) {
+				for (i = 0; i < len; i++) {
 					// direction = 2 means reset!
 					if (list[i][1] !== 2) {
 						// multicolumn sorting updating - choose the :last in case there are nested columns
-						f = c.$headers.not('.sorter-false').filter('[data-column="' + list[i][0] + '"]' + (l === 1 ? ':last' : '') );
+						f = c.$headers.not('.sorter-false').filter('[data-column="' + list[i][0] + '"]' + (len === 1 ? ':last' : '') );
 						if (f.length) {
 							for (j = 0; j < f.length; j++) {
 								if (!f[j].sortDisabled) {
 									f.eq(j).removeClass(none).addClass(css[list[i][1]]).attr('aria-sort', aria[list[i][1]]);
-									// add sorted class to footer, if it exists
-									if ($t.length) {
-										$t.filter('[data-column="' + list[i][0] + '"]').eq(j).addClass(css[list[i][1]]);
-									}
 								}
+							}
+							// add sorted class to footer & extra headers, if they exist
+							if ($t.length) {
+								$t.filter('[data-column="' + list[i][0] + '"]').removeClass(none).addClass(css[list[i][1]]);
 							}
 						}
 					}
@@ -544,7 +544,7 @@
 				}
 			}
 
-			function updateHeaderSortCount(table, list) {
+			function updateHeaderSortCount(table, list, triggered) {
 				var s, t, o, c = table.config,
 					sl = list || c.sortList;
 				c.sortList = [];
@@ -552,10 +552,11 @@
 					// ensure all sortList values are numeric - fixes #127
 					s = [ parseInt(v[0], 10), parseInt(v[1], 10) ];
 					// make sure header exists
-					o = c.$headers[s[0]];
+					o = c.$headers.filter('[data-column="' + s[0] + '"]:last')[0];
 					if (o) { // prevents error if sorton array is wrong
 						c.sortList.push(s);
 						t = $.inArray(s[1], o.order); // fixes issue #167
+						if (triggered) { o.count = o.count + 1; }
 						o.count = t >= 0 ? t : s[1] % (c.sortReset ? 3 : 2);
 					}
 				});
@@ -625,7 +626,7 @@
 						// reverse the sorting direction
 						for (col = 0; col < c.sortList.length; col++) {
 							s = c.sortList[col];
-							order = c.$headers[s[0]];
+							order = c.$headers.filter('[data-column="' + s[0] + '"]:last')[0];
 							if (s[0] === indx) {
 								// order.count seems to be incorrect when compared to cell.count
 								s[1] = order.order[cell.count];
@@ -782,7 +783,7 @@
 					ts.refreshWidgets(table, true, true);
 					ts.restoreHeaders(table);
 					buildHeaders(table);
-					ts.bindEvents(table, c.$headers);
+					ts.bindEvents(table, c.$headers, true);
 					bindMethods(table);
 					commonUpdate(table, resort, callback);
 				})
@@ -827,6 +828,7 @@
 						updateHeader(table);
 						commonUpdate(table, resort, callback);
 					} else {
+						$row = $($row); // make sure we're using a jQuery object
 						var i, j, l, rowData, cells,
 						rows = $row.filter('tr').length,
 						tbdy = $table.find('tbody').index( $row.parents('tbody').filter(':first') );
@@ -868,7 +870,7 @@
 					e.stopPropagation();
 					$table.trigger("sortStart", this);
 					// update header count index
-					updateHeaderSortCount(table, list);
+					updateHeaderSortCount(table, list, true);
 					// set css for headers
 					setHeadersCss(table);
 					// fixes #346
@@ -961,7 +963,7 @@
 					return (version[0] > 1) || (version[0] === 1 && parseInt(version[1], 10) >= 4);
 				})($.fn.jquery.split("."));
 				// digit sort text location; keeping max+/- for backwards compatibility
-				c.string = { 'max': 1, 'min': -1, 'max+': 1, 'max-': -1, 'zero': 0, 'none': 0, 'null': 0, 'top': true, 'bottom': false };
+				c.string = { 'max': 1, 'min': -1, 'emptyMin': 1, 'emptyMax': -1, 'zero': 0, 'none': 0, 'null': 0, 'top': true, 'bottom': false };
 				// add table theme class only if there isn't already one there
 				if (!/tablesorter\-/.test($table.attr('class'))) {
 					k = (c.theme !== '' ? ' tablesorter-' + c.theme : '');
@@ -999,7 +1001,7 @@
 				// delayInit will delay building the cache until the user starts a sort
 				if (!c.delayInit) { buildCache(table); }
 				// bind all header events and methods
-				ts.bindEvents(table, c.$headers);
+				ts.bindEvents(table, c.$headers, true);
 				bindMethods(table);
 				// get sort list from jQuery data or metadata
 				// in jQuery < 1.4, an error occurs when calling $table.data()
@@ -1132,10 +1134,13 @@
 				$(table)[0].config.$tbodies.empty();
 			};
 
-			ts.bindEvents = function(table, $headers){
+			ts.bindEvents = function(table, $headers, core){
 				table = $(table)[0];
 				var downTime,
-				c = table.config;
+					c = table.config;
+				if (core !== true) {
+					c.$extraHeaders = c.$extraHeaders ? c.$extraHeaders.add($headers) : $headers;
+				}
 				// apply event handling to headers and/or additional headers (stickyheaders, scroller, etc)
 				$headers
 				// http://stackoverflow.com/questions/5312849/jquery-find-self;
