@@ -1,4 +1,4 @@
-/*! tableSorter 2.16+ widgets - updated 4/27/2014 (v2.16.2)
+/*! tableSorter 2.16+ widgets - updated 4/30/2014 (v2.16.3)
  *
  * Column Styles
  * Column Filters
@@ -817,7 +817,7 @@ ts.filter = {
 	},
 	hideFilters: function(table, c) {
 		var $filterRow, $filterRow2, timer;
-		c.$table
+		$(table)
 			.find('.' + ts.css.filterRow)
 			.addClass('hideme')
 			.bind('mouseenter mouseleave', function(e) {
@@ -846,7 +846,7 @@ ts.filter = {
 				var event = e;
 				timer = setTimeout(function() {
 					// don't hide row if any filter has a value
-					if (ts.getFilters(table).join('') === '') {
+					if (ts.getFilters(c.$table).join('') === '') {
 						$filterRow2[ event.type === 'focus' ? 'removeClass' : 'addClass']('hideme');
 					}
 				}, 200);
@@ -854,7 +854,7 @@ ts.filter = {
 	},
 	findRows: function(table, filters, combinedFilters) {
 		if (table.config.lastCombinedFilter === combinedFilters) { return; }
-		var cached, len, $rows, cacheIndex, rowIndex, tbodyIndex, $tbody, $cells, columnIndex,
+		var cached, len, $rows, rowIndex, tbodyIndex, $tbody, $cells, columnIndex,
 			childRow, childRowText, exact, iExact, iFilter, lastSearch, matches, result,
 			notFiltered, searchFiltered, filterMatched, showRow, time,
 			anyMatch, iAnyMatch, rowArray, rowText, iRowText, rowCache,
@@ -866,9 +866,10 @@ ts.filter = {
 			anyMatchNotAllowedTypes = [ 'range', 'notMatch',  'operators' ],
 			// parse columns after formatter, in case the class is added at that point
 			parsed = c.$headers.map(function(columnIndex) {
-				return c.parsers && c.parsers[columnIndex] && c.parsers[columnIndex].parsed || ( ts.getData ?
-					ts.getData(c.$headers.filter('[data-column="' + columnIndex + '"]:last'), c.headers[columnIndex], 'filter') === 'parsed' :
-					$(this).hasClass('filter-parsed') );
+				return c.parsers && c.parsers[columnIndex] && c.parsers[columnIndex].parsed ||
+					// getData won't return "parsed" if other "filter-" class names exist (e.g. <th class="filter-select filter-parsed">)
+					ts.getData && ts.getData(c.$headers.filter('[data-column="' + columnIndex + '"]:last'), c.headers[columnIndex], 'filter') === 'parsed' ||
+					$(this).hasClass('filter-parsed');
 			}).get();
 		if (c.debug) { time = new Date(); }
 		for (tbodyIndex = 0; tbodyIndex < $tbodies.length; tbodyIndex++ ) {
@@ -913,7 +914,6 @@ ts.filter = {
 					iAnyMatch = anyMatch.toLowerCase();
 				}
 				// loop through the rows
-				cacheIndex = 0;
 				for (rowIndex = 0; rowIndex < len; rowIndex++) {
 					childRow = $rows[rowIndex].className;
 					// skip child rows & already filtered rows
@@ -932,7 +932,7 @@ ts.filter = {
 						rowArray = $cells.map(function(i){
 							var txt;
 							if (parsed[i]) {
-								txt = c.cache[tbodyIndex].normalized[cacheIndex][i];
+								txt = c.cache[tbodyIndex].normalized[rowIndex][i];
 							} else {
 								txt = wo.filter_ignoreCase ? $(this).text().toLowerCase() : $(this).text();
 								if (c.sortLocaleCompare) {
@@ -943,7 +943,7 @@ ts.filter = {
 						}).get();
 						rowText = rowArray.join(' ');
 						iRowText = rowText.toLowerCase();
-						rowCache = c.cache[tbodyIndex].normalized[cacheIndex].slice(0,-1).join(' ');
+						rowCache = c.cache[tbodyIndex].normalized[rowIndex].slice(0,-1).join(' ');
 						filterMatched = null;
 						$.each(ts.filter.types, function(type, typeFunction) {
 							if ($.inArray(type, anyMatchNotAllowedTypes) < 0) {
@@ -964,7 +964,7 @@ ts.filter = {
 					for (columnIndex = 0; columnIndex < columns; columnIndex++) {
 						// ignore if filter is empty or disabled
 						if (filters[columnIndex]) {
-							cached = c.cache[tbodyIndex].normalized[cacheIndex][columnIndex];
+							cached = c.cache[tbodyIndex].normalized[rowIndex][columnIndex];
 							// check if column data should be from the cell or from parsed data
 							if (wo.filter_useParsedData || parsed[columnIndex]) {
 								exact = cached;
@@ -1020,7 +1020,6 @@ ts.filter = {
 					if (childRow.length) {
 						childRow.toggleClass(wo.filter_filteredRow, !showRow);
 					}
-					cacheIndex++;
 				}
 			}
 			ts.processTbody(table, $tbody, false);
@@ -1040,8 +1039,10 @@ ts.filter = {
 		}, 0);
 	},
 	getOptionSource: function(table, column, onlyAvail) {
-		var c = table.config,
+		var cts,
+			c = table.config,
 			wo = c.widgetOptions,
+			parsed = [],
 			arry = false,
 			source = wo.filter_selectSource;
 
@@ -1064,7 +1065,43 @@ ts.filter = {
 		arry = $.grep(arry, function(value, indx) {
 			return $.inArray(value, arry) === indx;
 		});
-		return (ts.sortNatural) ? arry.sort(function(a, b) { return ts.sortNatural(a, b); }) : arry.sort(true);
+
+		if (c.$headers.filter('[data-column="' + column + '"]:last').hasClass('filter-select-nosort')) {
+			// unsorted select options
+			return arry;
+		} else {
+			// parse select option values
+			$.each(arry, function(i, v){
+				// parse array data using set column parser; this DOES NOT pass the original
+				// table cell to the parser format function
+				parsed.push({ t : v, p : c.parsers && c.parsers[column].format( v, table, [], column ) || v });
+			});
+
+			// sort parsed select options
+			cts = c.textSorter || '';
+			parsed.sort(function(a, b){
+				// sortNatural breaks if you don't pass it strings
+				var x = a.p.toString(), y = b.p.toString();
+				if ($.isFunction(cts)) {
+					// custom OVERALL text sorter
+					return cts(x, y, true, column, table);
+				} else if (typeof(cts) === 'object' && cts.hasOwnProperty(column)) {
+					// custom text sorter for a SPECIFIC COLUMN
+					return cts[column](x, y, true, column, table);
+				} else if (ts.sortNatural) {
+					// fall back to natural sort
+					return ts.sortNatural(x, y);
+				}
+				// using an older version! do a basic sort
+				return true;
+			});
+			// rebuild arry from sorted parsed data
+			arry = [];
+			$.each(parsed, function(i, v){
+				arry.push(v.t);
+			});
+			return arry;
+		}
 	},
 	getOptions: function(table, column, onlyAvail) {
 		var rowIndex, tbodyIndex, len, row, cache, cell,
@@ -1282,10 +1319,7 @@ ts.addWidget({
 						// some wibbly-wobbly... timey-wimey... stuff, to make columns line up in Firefox
 						offset = nonwkie && $(this).attr('data-column') === ( '' + parseInt(c.columns/2, 10) ) ? 1 : 0;
 					$(this)
-						.css({
-							width: $cell.width() - spacing,
-							height: $cell.height()
-						})
+						.css({ width: $cell.width() - spacing })
 						.find(innerHeader).width( $cell.find(innerHeader).width() - offset );
 				});
 			};
@@ -1364,6 +1398,10 @@ ts.addWidget({
 				}
 			});
 			ts.filter.bindSearch( $table, $stickyCells.find('.' + ts.css.filter) );
+			// support hideFilters
+			if (wo.filter_hideFilters) {
+				ts.filter.hideFilters($stickyTable, c);
+			}
 		}
 
 		$table.trigger('stickyHeadersInit');
@@ -1477,7 +1515,7 @@ ts.addWidget({
 		})
 		.find('.' + ts.css.resizer + ',.' + ts.css.grip)
 		.bind('mousedown', function(event) {
-			// save header cell and mouse position; closest() not supported by jQuery v1.2.6
+			// save header cell and mouse position
 			$target = $(event.target).closest('th');
 			var $header = c.$headers.filter('[data-column="' + $target.attr('data-column') + '"]');
 			if ($header.length > 1) { $target = $target.add($header); }

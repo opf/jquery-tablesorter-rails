@@ -1,5 +1,5 @@
 /**!
-* TableSorter 2.16.2 - Client-side table sorting with ease!
+* TableSorter 2.16.3 - Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
 * Copyright (c) 2007 Christian Bach
@@ -24,7 +24,7 @@
 
 			var ts = this;
 
-			ts.version = "2.16.2";
+			ts.version = "2.16.3";
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -219,7 +219,7 @@
 				var c = table.config,
 					// update table bodies in case we start with an empty table
 					tb = c.$tbodies = c.$table.children('tbody:not(.' + c.cssInfoBlock + ')'),
-					rows, list, l, i, h, ch, p, time,
+					rows, list, l, i, h, ch, p, time, indx,
 					j = 0,
 					parsersDebug = "",
 					len = tb.length;
@@ -240,7 +240,9 @@
 							h = c.$headers.filter(':not([colspan])');
 							h = h.add( c.$headers.filter('[colspan="1"]') ) // ie8 fix
 								.filter('[data-column="' + i + '"]:last');
-							ch = c.headers[i];
+							// get headers option corrected index
+							indx = c.$headers.index(h);
+							ch = c.headers[indx];
 							// get column parser
 							p = ts.getParserById( ts.getData(h, ch, 'sorter') );
 							// empty cells behaviour - keeping emptyToBottom for backwards compatibility
@@ -804,8 +806,8 @@
 					$cell = $(cell),
 					// update cache - format: function(s, table, cell, cellIndex)
 					// no closest in jQuery v1.2.6 - tbdy = $tb.index( $(cell).closest('tbody') ),$row = $(cell).closest('tr');
-					tbdy = $tb.index( $cell.parents('tbody').filter(':first') ),
-					$row = $cell.parents('tr').filter(':first');
+					tbdy = $tb.index( $.fn.closest ? $cell.closest('tbody') : $cell.parents('tbody').filter(':first') ),
+					$row = $.fn.closest ? $cell.closest('tr') : $cell.parents('tr').filter(':first');
 					cell = $cell[0]; // in case cell is a jQuery object
 					// tbody may not exist if update is initialized while tbody is removed for processing
 					if ($tb.length && tbdy >= 0) {
@@ -1019,9 +1021,7 @@
 					setHeadersCss(table);
 					if (c.initWidgets) {
 						// apply widget format
-						setTimeout(function(){
-							ts.applyWidget(table, false);
-						}, 0);
+						ts.applyWidget(table, false);
 					}
 				}
 
@@ -1030,7 +1030,13 @@
 					$table
 					.unbind('sortBegin' + c.namespace + ' sortEnd' + c.namespace)
 					.bind('sortBegin' + c.namespace + ' sortEnd' + c.namespace, function(e) {
-						ts.isProcessing(table, e.type === 'sortBegin');
+						clearTimeout(c.processTimer);
+						ts.isProcessing(table);
+						if (e.type === 'sortBegin') {
+							c.processTimer = setTimeout(function(){
+								ts.isProcessing(table, true);
+							}, 500);
+						}
 					});
 				}
 
@@ -1043,7 +1049,6 @@
 				$table.trigger('tablesorter-initialized', table);
 				if (typeof c.initialized === 'function') { c.initialized(table); }
 			};
-
 
 			// computeTableHeaderCellIndexes from:
 			// http://www.javascripttoolbox.com/lib/table/examples.php
@@ -1161,7 +1166,7 @@
 					}
 					if (c.delayInit && isEmptyObject(c.cache)) { buildCache(table); }
 					// jQuery v1.2.6 doesn't have closest()
-					cell = /TH|TD/.test(this.tagName) ? this : $(this).parents('th, td')[0];
+					cell = $.fn.closest ? $(this).closest('th, td')[0] : /TH|TD/.test(this.tagName) ? this : $(this).parents('th, td')[0];
 					// reference original table headers and find the same cell
 					cell = c.$headers[ $headers.index( cell ) ];
 					if (!cell.sortDisabled) {
@@ -1238,6 +1243,8 @@
 			};
 
 			// Natural sort - https://github.com/overset/javascript-natural-sort (date sorting removed)
+			// this function will only accept strings, or you'll see "TypeError: undefined is not a function"
+			// I could add a = a.toString(); b = b.toString(); but it'll slow down the sort overall
 			ts.sortNatural = function(a, b) {
 				if (a === b) { return 0; }
 				var xN, xD, yN, yD, xF, yF, i, mx,
