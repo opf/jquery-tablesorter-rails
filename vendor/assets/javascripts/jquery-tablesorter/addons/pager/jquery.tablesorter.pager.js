@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 4/23/2014 (v2.16.0)
+ * updated 5/22/2014 (v2.17.0)
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -289,7 +289,7 @@
 						exception === 'timeout' ? 'Time out error' :
 						exception === 'abort' ? 'Ajax Request aborted' :
 						'Uncaught error: ' + xhr.statusText + ' [' + xhr.status + ']' );
-					c.$tbodies.eq(0).empty();
+					c.$tbodies.eq(0).detach();
 					p.totalRows = 0;
 				} else {
 					// process ajax object
@@ -311,7 +311,7 @@
 					if (d instanceof jQuery) {
 						if (p.processAjaxOnInit) {
 							// append jQuery object
-							c.$tbodies.eq(0).empty().append(d);
+							c.$tbodies.eq(0).detach().append(d);
 						}
 					} else if (l) {
 						// build table from array
@@ -726,6 +726,11 @@
 					})
 					.bind('update updateRows updateAll addRows '.split(' ').join('.pager '), function(e){
 						e.stopPropagation();
+						fixHeight(table, p);
+						var $rows = c.$tbodies.eq(0).children();
+						p.totalRows = $rows.length - ( p.countChildRows ? 0 : $rows.filter('.' + c.cssChildRow).length );
+						p.totalPages = Math.ceil( p.totalRows / p.size );
+						updatePageDisplay(table, p);
 						hideRows(table, p);
 					})
 					.bind('pageSize.pager', function(e,v){
