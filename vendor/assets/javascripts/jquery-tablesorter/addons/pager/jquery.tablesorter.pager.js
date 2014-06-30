@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 6/18/2014 (v2.17.2)
+ * updated 6/28/2014 (v2.17.3)
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -121,7 +121,7 @@
 			dis = !!disable,
 			first = ( dis || p.page === 0 ),
 			tp = Math.min( p.totalPages, p.filteredPages ),
-			last = ( dis || (p.page === tp - 1) || p.totalPages === 0 );
+			last = ( dis || (p.page === tp - 1) || tp === 0 );
 			if ( p.updateArrows ) {
 				p.$container.find(p.cssFirst + ',' + p.cssPrev)[ first ? a : r ](d).attr('aria-disabled', first);
 				p.$container.find(p.cssNext + ',' + p.cssLast)[ last ? a : r ](d).attr('aria-disabled', last);
@@ -131,21 +131,22 @@
 		updatePageDisplay = function(table, p, completed) {
 			var i, pg, s, out, regex,
 				c = table.config,
-				f = c.$table.hasClass('hasFilters') && !p.ajaxUrl,
+				f = c.$table.hasClass('hasFilters'),
 				t = [],
 				sz = p.size || 10; // don't allow dividing by zero
-			t = [ (c.widgetOptions && c.widgetOptions.filter_filteredRow || 'filtered'), c.selectorRemove ];
+			t = [ (c.widgetOptions && c.widgetOptions.filter_filteredRow || 'filtered'), c.selectorRemove.replace(/^(\w+\.)/g,'') ];
 			if (p.countChildRows) { t.push(c.cssChildRow); }
 			regex = new RegExp( '(' + t.join('|') + ')' );
 			p.totalPages = Math.ceil( p.totalRows / sz ); // needed for "pageSize" method
-			p.filteredRows = (f) ? 0 : p.totalRows;
-			p.filteredPages = p.totalPages;
-			if (f) {
+			if (f && !p.ajaxUrl) {
+				p.filteredRows = 0;
 				$.each(c.cache[0].normalized, function(i, el) {
 					p.filteredRows += p.regexRows.test(el[c.columns].$row[0].className) ? 0 : 1;
 				});
-				p.filteredPages = Math.ceil( p.filteredRows / sz ) || 0;
+			} else if (!f) {
+				p.filteredRows = p.totalRows;
 			}
+			p.filteredPages = Math.ceil( p.filteredRows / sz ) || 0;
 			if ( Math.min( p.totalPages, p.filteredPages ) >= 0 ) {
 				t = (p.size * p.page > p.filteredRows);
 				p.startRow = (t) ? 1 : (p.filteredRows === 0 ? 0 : p.size * p.page + 1);
@@ -202,7 +203,7 @@
 				if (h) {
 					d = h - $b.height();
 					if ( d > 5 && $.data(table, 'pagerLastSize') === p.size && $b.children('tr:visible').length < p.size ) {
-						$b.append('<tr class="pagerSavedHeightSpacer ' + c.selectorRemove.replace(/(tr)?\./g,'') + '" style="height:' + d + 'px;"></tr>');
+						$b.append('<tr class="pagerSavedHeightSpacer ' + c.selectorRemove.replace(/^(\w+\.)/g,'') + '" style="height:' + d + 'px;"></tr>');
 					}
 				}
 			}
@@ -235,7 +236,7 @@
 						} else {
 							rows[i].style.display = ( j >= s && j < e ) ? '' : 'none';
 							// don't count child rows
-							j += rows[i].className.match(c.cssChildRow + '|' + c.selectorRemove.slice(1)) && !p.countChildRows ? 0 : 1;
+							j += rows[i].className.match(c.cssChildRow + '|' + c.selectorRemove.replace(/^(\w+\.)/g,'')) && !p.countChildRows ? 0 : 1;
 							if ( j === e && rows[i].style.display !== 'none' && rows[i].className.match(ts.css.cssHasChild) ) {
 								lastIndex = i;
 							}
@@ -296,6 +297,7 @@
 					if (!$.isArray(result)) {
 						p.ajaxData = result;
 						p.totalRows = result.total;
+						p.filteredRows = typeof result.filteredRows !== 'undefined' ? result.filteredRows : result.total;
 						th = result.headers;
 						d = result.rows;
 					} else {
@@ -696,7 +698,7 @@
 				}
 
 				// skipped rows
-				p.regexRows = new RegExp('(' + (wo.filter_filteredRow || 'filtered') + '|' + c.selectorRemove.substring(1) + '|' + c.cssChildRow + ')');
+				p.regexRows = new RegExp('(' + (wo.filter_filteredRow || 'filtered') + '|' + c.selectorRemove.replace(/^(\w+\.)/g,'') + '|' + c.cssChildRow + ')');
 
 				$t
 					.unbind('filterStart filterEnd sortEnd disable enable destroy update updateRows updateAll addRows pageSize '.split(' ').join('.pager '))
@@ -845,7 +847,7 @@
 						})
 						// add error row to thead instead of tbody, or clicking on the header will result in a parser error
 						.appendTo( c.$table.find('thead:first') )
-						.addClass( errorRow + ' ' + c.selectorRemove.replace(/^[.#]/, '') )
+						.addClass( errorRow + ' ' + c.selectorRemove.replace(/^(\w+\.)/g,'') )
 						.attr({
 							role : 'alert',
 							'aria-live' : 'assertive'
