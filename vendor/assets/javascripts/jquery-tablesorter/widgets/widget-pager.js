@@ -1,4 +1,4 @@
-/* Pager widget (beta) for TableSorter 6/28/2014 (v2.17.3) */
+/* Pager widget for TableSorter 7/4/2014 (v2.17.4) */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($){
 "use strict";
@@ -205,7 +205,7 @@ tsp = ts.pager = {
 		p.isInitializing = false;
 		tsp.setPageSize(table, 0, c); // page size 0 is ignored
 		c.$table.trigger('pagerInitialized', c);
-
+		tsp.updatePageDisplay(table, c);
 	},
 
 	bindEvents: function(table, c){
@@ -351,6 +351,8 @@ tsp = ts.pager = {
 		} else if (!f) {
 			p.filteredRows = p.totalRows;
 		}
+		c.totalRows = p.totalRows;
+		c.filteredRows = p.filteredRows;
 		p.filteredPages = Math.ceil( p.filteredRows / sz ) || 0;
 		if ( Math.min( p.totalPages, p.filteredPages ) >= 0 ) {
 			t = (p.size * p.page > p.filteredRows);
@@ -498,8 +500,8 @@ tsp = ts.pager = {
 				// process ajax object
 				if (!$.isArray(result)) {
 					p.ajaxData = result;
-					p.totalRows = result.total;
-					p.filteredRows = typeof result.filteredRows !== 'undefined' ? result.filteredRows : result.total;
+					c.totalRows = p.totalRows = result.total;
+					c.filteredRows = p.filteredRows = typeof result.filteredRows !== 'undefined' ? result.filteredRows : result.total;
 					th = result.headers;
 					d = result.rows;
 				} else {
@@ -508,10 +510,12 @@ tsp = ts.pager = {
 					// ensure a zero returned row count doesn't fail the logical ||
 					rr_count = result[t ? 1 : 0];
 					p.totalRows = isNaN(rr_count) ? p.totalRows || 0 : rr_count;
+					// can't set filtered rows when returning an array
+					c.totalRows = c.filteredRows = p.filteredRows = p.totalRows;
 					d = p.totalRows === 0 ? [""] : result[t ? 0 : 1] || []; // row data
 					th = result[2]; // headers
 				}
-				l = d.length;
+				l = d && d.length;
 				if (d instanceof jQuery) {
 					if (wo.pager_processAjaxOnInit) {
 						// append jQuery object

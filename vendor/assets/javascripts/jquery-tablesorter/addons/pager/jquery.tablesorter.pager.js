@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 6/28/2014 (v2.17.3)
+ * updated 7/4/2014 (v2.17.4)
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -146,6 +146,8 @@
 			} else if (!f) {
 				p.filteredRows = p.totalRows;
 			}
+			c.totalRows = p.totalRows;
+			c.filteredRows = p.filteredRows;
 			p.filteredPages = Math.ceil( p.filteredRows / sz ) || 0;
 			if ( Math.min( p.totalPages, p.filteredPages ) >= 0 ) {
 				t = (p.size * p.page > p.filteredRows);
@@ -296,8 +298,8 @@
 					// process ajax object
 					if (!$.isArray(result)) {
 						p.ajaxData = result;
-						p.totalRows = result.total;
-						p.filteredRows = typeof result.filteredRows !== 'undefined' ? result.filteredRows : result.total;
+						c.totalRows = p.totalRows = result.total;
+						c.filteredRows = p.filteredRows = typeof result.filteredRows !== 'undefined' ? result.filteredRows : result.total;
 						th = result.headers;
 						d = result.rows;
 					} else {
@@ -306,10 +308,12 @@
 						// ensure a zero returned row count doesn't fail the logical ||
 						rr_count = result[t ? 1 : 0];
 						p.totalRows = isNaN(rr_count) ? p.totalRows || 0 : rr_count;
+						// can't set filtered rows when returning an array
+						c.totalRows = c.filteredRows = p.filteredRows = p.totalRows;
 						d = p.totalRows === 0 ? [""] : result[t ? 0 : 1] || []; // row data
 						th = result[2]; // headers
 					}
-					l = d.length;
+					l = d && d.length;
 					if (d instanceof jQuery) {
 						if (p.processAjaxOnInit) {
 							// append jQuery object
