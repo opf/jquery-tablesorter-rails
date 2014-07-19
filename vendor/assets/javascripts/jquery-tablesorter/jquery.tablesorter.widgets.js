@@ -1,4 +1,4 @@
-/*! tableSorter 2.16+ widgets - updated 7/4/2014 (v2.17.4)
+/*! tableSorter 2.16+ widgets - updated 7/17/2014 (v2.17.5)
  *
  * Column Styles
  * Column Filters
@@ -54,7 +54,6 @@ $.extend(ts.css, {
 	filter    : 'tablesorter-filter',
 	wrapper   : 'tablesorter-wrapper',      // ui theme & resizable
 	resizer   : 'tablesorter-resizer',      // resizable
-	grip      : 'tablesorter-resizer-grip',
 	sticky    : 'tablesorter-stickyHeader', // stickyHeader
 	stickyVis : 'tablesorter-sticky-visible'
 });
@@ -444,7 +443,7 @@ ts.filter = {
 					savedSearch = query;
 				// parse filter value in case we're comparing numbers (dates)
 				if (parsed[index] || parser.type === 'numeric') {
-					result = parser.format( $.trim('' + iFilter.replace(ts.filter.regex.operators, '')), table, [], index );
+					result = ts.filter.parseFilter(table, $.trim('' + iFilter.replace(ts.filter.regex.operators, '')), index, parsed[index], true);
 					query = ( typeof result === "number" && result !== '' && !isNaN(result) ) ? result : query;
 				}
 
@@ -463,9 +462,9 @@ ts.filter = {
 			return null;
 		},
 		// Look for a not match
-		notMatch: function( filter, iFilter, exact, iExact, cached, index, table, wo ) {
+		notMatch: function( filter, iFilter, exact, iExact, cached, index, table, wo, parsed ) {
 			if ( /^\!/.test(iFilter) ) {
-				iFilter = iFilter.replace('!', '');
+				iFilter = ts.filter.parseFilter(table, iFilter.replace('!', ''), index, parsed[index]);
 				if (ts.filter.regex.exact.test(iFilter)) {
 					// look for exact not matches - see #628
 					iFilter = iFilter.replace(ts.filter.regex.exact, '');
@@ -481,19 +480,19 @@ ts.filter = {
 		exact: function( filter, iFilter, exact, iExact, cached, index, table, wo, parsed, rowArray ) {
 			/*jshint eqeqeq:false */
 			if (ts.filter.regex.exact.test(iFilter)) {
-				var fltr = iFilter.replace(ts.filter.regex.exact, '');
+				var fltr = ts.filter.parseFilter(table, iFilter.replace(ts.filter.regex.exact, ''), index, parsed[index]);
 				return rowArray ? $.inArray(fltr, rowArray) >= 0 : fltr == iExact;
 			}
 			return null;
 		},
 		// Look for an AND or && operator (logical and)
-		and : function( filter, iFilter, exact, iExact ) {
+		and : function( filter, iFilter, exact, iExact, cached, index, table, wo, parsed ) {
 			if ( ts.filter.regex.andTest.test(filter) ) {
 				var query = iFilter.split( ts.filter.regex.andSplit ),
-					result = iExact.search( $.trim(query[0]) ) >= 0,
+					result = iExact.search( $.trim(ts.filter.parseFilter(table, query[0], index, parsed[index])) ) >= 0,
 					indx = query.length - 1;
 				while (result && indx) {
-					result = result && iExact.search( $.trim(query[indx]) ) >= 0;
+					result = result && iExact.search( $.trim(ts.filter.parseFilter(table, query[indx], index, parsed[index])) ) >= 0;
 					indx--;
 				}
 				return result;
@@ -507,8 +506,8 @@ ts.filter = {
 					c = table.config,
 					// make sure the dash is for a range and not indicating a negative number
 					query = iFilter.split( ts.filter.regex.toSplit ),
-					range1 = ts.formatFloat(query[0].replace(ts.filter.regex.nondigit, ''), table),
-					range2 = ts.formatFloat(query[1].replace(ts.filter.regex.nondigit, ''), table);
+					range1 = ts.formatFloat( ts.filter.parseFilter(table, query[0].replace(ts.filter.regex.nondigit, ''), index, parsed[index]), table ),
+					range2 = ts.formatFloat( ts.filter.parseFilter(table, query[1].replace(ts.filter.regex.nondigit, ''), index, parsed[index]), table );
 					// parse filter value in case we're comparing numbers (dates)
 				if (parsed[index] || c.parsers[index].type === 'numeric') {
 					result = c.parsers[index].format('' + query[0], table, c.$headers.eq(index), index);
@@ -528,22 +527,23 @@ ts.filter = {
 		wild : function( filter, iFilter, exact, iExact, cached, index, table, wo, parsed, rowArray ) {
 			if ( /[\?|\*]/.test(iFilter) || ts.filter.regex.orReplace.test(filter) ) {
 				var c = table.config,
-					query = iFilter.replace(ts.filter.regex.orReplace, "|");
+					query = ts.filter.parseFilter(table, iFilter.replace(ts.filter.regex.orReplace, "|"), index, parsed[index]);
 				// look for an exact match with the "or" unless the "filter-match" class is found
 				if (!c.$headers.filter('[data-column="' + index + '"]:last').hasClass('filter-match') && /\|/.test(query)) {
 					query = $.isArray(rowArray) ? '(' + query + ')' : '^(' + query + ')$';
 				}
+				// parsing the filter may not work properly when using wildcards =/
 				return new RegExp( query.replace(/\?/g, '\\S{1}').replace(/\*/g, '\\S*') ).test(iExact);
 			}
 			return null;
 		},
 		// fuzzy text search; modified from https://github.com/mattyork/fuzzy (MIT license)
-		fuzzy: function( filter, iFilter, exact, iExact ) {
+		fuzzy: function( filter, iFilter, exact, iExact, cached, index, table, wo, parsed ) {
 			if ( /^~/.test(iFilter) ) {
 				var indx,
 					patternIndx = 0,
 					len = iExact.length,
-					pattern = iFilter.slice(1);
+					pattern = ts.filter.parseFilter(table, iFilter.slice(1), index, parsed[index]);
 				for (indx = 0; indx < len; indx++) {
 					if (iExact[indx] === pattern[patternIndx]) {
 						patternIndx += 1;
@@ -572,8 +572,11 @@ ts.filter = {
 		}
 		c.$table.addClass('hasFilters');
 
-		// define searchTimer so using clearTimeout won't cause an undefined error
+		// define timers so using clearTimeout won't cause an undefined error
 		wo.searchTimer = null;
+		wo.filter_initTimer = null;
+		wo.filter_formatterCount = 0;
+		wo.filter_formatterInit = [];
 
 		$.extend( regex, {
 			child : new RegExp(c.cssChildRow),
@@ -593,7 +596,7 @@ ts.filter = {
 		}
 
 		c.$table.bind('addRows updateCell update updateRows updateComplete appendCache filterReset filterEnd search '.split(' ').join(c.namespace + 'filter '), function(event, filter) {
-			c.$table.find('.' + ts.css.filterRow).toggle( !(wo.filter_hideEmpty && $.isEmptyObject(c.cache)) ); // fixes #450
+			c.$table.find('.' + ts.css.filterRow).toggle( !(wo.filter_hideEmpty && $.isEmptyObject(c.cache) && !(c.delayInit && event.type === 'appendCache')) ); // fixes #450
 			if ( !/(search|filter)/.test(event.type) ) {
 				event.stopPropagation();
 				ts.filter.buildDefault(table, true);
@@ -681,6 +684,9 @@ ts.filter = {
 			});
 		}
 
+		// set filtered rows count (intially unfiltered)
+		c.filteredRows = c.totalRows;
+
 		if (c.debug) {
 			ts.benchmark("Applying Filter widget", time);
 		}
@@ -690,24 +696,58 @@ ts.filter = {
 			var wo = this.config.widgetOptions;
 			filters = ts.filter.setDefaults(table, c, wo) || [];
 			if (filters.length) {
-				ts.setFilters(table, filters, true);
-				// ts.filter.checkFilters(table, filters);
+				// prevent delayInit from triggering a cache build if filters are empty
+				if ( !(c.delayInit && filters.join('') === '') ) {
+					ts.setFilters(table, filters, true);
+				}
 			}
 			c.$table.trigger('filterFomatterUpdate');
-			if (!wo.filter_initialized) {
-				// filter widget initialized
-				wo.filter_initialized = true;
-				c.$table.trigger('filterInit', c);
-			}
+			// trigger init after setTimeout to prevent multiple filterStart/End/Init triggers
+			setTimeout(function(){
+				if (!wo.filter_initialized) {
+					ts.filter.filterInitComplete(c);
+				}
+			}, 100);
 		});
 		// if filter widget is added after pager has initialized; then set filter init flag
 		if (c.pager && c.pager.initialized && !wo.filter_initialized) {
-			wo.filter_initialized = true;
-			c.$table
-				.trigger('filterFomatterUpdate')
-				.trigger('filterInit', c);
+			c.$table.trigger('filterFomatterUpdate');
+			setTimeout(function(){
+				ts.filter.filterInitComplete(c);
+			}, 100);
 		}
-
+	},
+	// $cell parameter, but not the config, is passed to the
+	// filter_formatters, so we have to work with it instead
+	formatterUpdated: function($cell, column) {
+		var wo = $cell.closest('table')[0].config.widgetOptions;
+		if (!wo.filter_initialized) {
+			// add updates by column since this function
+			// may be called numerous times before initialization
+			wo.filter_formatterInit[column] = 1;
+		}
+	},
+	filterInitComplete: function(c){
+		var wo = c.widgetOptions,
+			count = 0;
+		$.each( wo.filter_formatterInit, function(i, val) {
+			if (val === 1) {
+				count++;
+			}
+		});
+		clearTimeout(wo.filter_initTimer);
+		if (!wo.filter_initialized && count === wo.filter_formatterCount) {
+			// filter widget initialized
+			wo.filter_initialized = true;
+			c.$table.trigger('filterInit', c);
+		} else if (!wo.filter_initialized) {
+			// fall back in case a filter_formatter doesn't call
+			// $.tablesorter.filter.formatterUpdated($cell, column), and the count is off
+			wo.filter_initTimer = setTimeout(function(){
+				wo.filter_initialized = true;
+				c.$table.trigger('filterInit', c);
+			}, 500);
+		}
 	},
 	setDefaults: function(table, c, wo) {
 		var isArray, saved, indx,
@@ -727,6 +767,12 @@ ts.filter = {
 		}
 		c.$table.data('lastSearch', filters);
 		return filters;
+	},
+	parseFilter: function(table, filter, column, parsed, forceParse){
+		var c = table.config;
+		return forceParse || parsed ?
+			c.parsers[column].format( filter, table, [], column ) :
+			filter;
 	},
 	buildRow: function(table, c, wo) {
 		var column, $header, buildSelect, disabled, name, ffxn,
@@ -753,6 +799,7 @@ ts.filter = {
 			} else {
 				ffxn = ts.getColumnData( table, wo.filter_formatter, column );
 				if (ffxn) {
+					wo.filter_formatterCount++;
 					buildFilter = ffxn( c.$filters.eq(column), column );
 					// no element returned, so lets go find it
 					if (buildFilter && buildFilter.length === 0) {
@@ -825,7 +872,9 @@ ts.filter = {
 			ts.filter.searching( table, true, true );
 		})
 		.bind('search change keypress '.split(' ').join(c.namespace + 'filter '), function(event){
-			if (event.which === 13 || event.type === 'search' || event.type === 'change') {
+			var column = $(this).data('column');
+			// don't allow "change" event to process if the input value is the same - fixes #685
+			if (event.which === 13 || event.type === 'search' || event.type === 'change' && this.value !== c.lastSearch[column]) {
 				event.preventDefault();
 				// init search with no delay
 				$(this).attr('data-lastSearchTime', new Date().getTime());
@@ -853,7 +902,15 @@ ts.filter = {
 			filters = (filterArray) ? filter : ts.getFilters(table, true),
 			combinedFilters = (filters || []).join(''); // combined filter values
 		// prevent errors if delay init is set
-		if ($.isEmptyObject(c.cache)) { return; }
+		if ($.isEmptyObject(c.cache)) {
+			// update cache if delayInit set & pager has initialized (after user initiates a search)
+			if (c.delayInit && c.pager && c.pager.initialized) {
+				c.$table.trigger('updateCache', [function(){
+					ts.filter.checkFilters(table, false, skipFirst);
+				}] );
+			}
+			return;
+		}
 		// add filter array back into inputs
 		if (filterArray) {
 			ts.setFilters( table, filters, false, skipFirst !== true );
@@ -1092,7 +1149,7 @@ ts.filter = {
 									result = filterMatched;
 								// Look for match, and add child row data for matching
 								} else {
-									exact = (iExact + childRowText).indexOf(iFilter);
+									exact = (iExact + childRowText).indexOf( ts.filter.parseFilter(table, iFilter, columnIndex, parsed[columnIndex]) );
 									result = ( (!wo.filter_startsWith && exact >= 0) || (wo.filter_startsWith && exact === 0) );
 								}
 							}
@@ -1208,7 +1265,7 @@ ts.filter = {
 					// check if has class filtered
 					if (onlyAvail && row.className.match(wo.filter_filteredRow)) { continue; }
 					// get non-normalized cell content
-					if (wo.filter_useParsedData) {
+					if (wo.filter_useParsedData || c.parsers[column].parsed || c.$headers.filter('[data-column="' + column + '"]:last').hasClass('filter-parsed')) {
 						arry.push( '' + cache.normalized[rowIndex][column] );
 					} else {
 						cell = row.cells[column];
@@ -1579,13 +1636,13 @@ ts.addWidget({
 		$columns
 		.each(function() {
 			var $column = $(this),
-				padding = parseInt($column.css('padding-right'), 10) + 10; // 10 is 1/2 of the 20px wide resizer grip
+				padding = parseInt($column.css('padding-right'), 10) + 10; // 10 is 1/2 of the 20px wide resizer
 			$column
 				.find('.' + ts.css.wrapper)
 				.append('<div class="' + ts.css.resizer + '" style="cursor:w-resize;position:absolute;z-index:1;right:-' +
 					padding + 'px;top:0;height:100%;width:20px;"></div>');
 		})
-		.find('.' + ts.css.resizer + ',.' + ts.css.grip)
+		.find('.' + ts.css.resizer)
 		.bind('mousedown', function(event) {
 			// save header cell and mouse position
 			$target = $(event.target).closest('th');
@@ -1629,7 +1686,7 @@ ts.addWidget({
 			.children('tr').children()
 			.unbind('mousemove.tsresize mouseup.tsresize')
 			// don't remove "tablesorter-wrapper" as uitheme uses it too
-			.find('.' + ts.css.resizer + ',.' + ts.css.grip).remove();
+			.find('.' + ts.css.resizer).remove();
 		ts.resizableReset(table);
 	}
 });
