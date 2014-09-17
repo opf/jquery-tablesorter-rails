@@ -10,11 +10,13 @@ Gem::Specification.new do |s|
   s.authors     = ['Jun Lin', 'Erik-B. Ernst']
   s.email       = ['github@black-milk.de']
   s.homepage    = 'https://github.com/themilkman/jquery-tablesorter-rails'
-  s.summary     = 'Simple integration of jquery-tablesorter into the asset pipeline.'
-  s.description = 'Simple integration of jquery-tablesorter into the asset pipeline.'
+  s.summary     = "Simple integration of jquery-tablesorter (Mottie's fork) into the Rails asset pipeline."
+  s.description = "Simple integration of jquery-tablesorter (Mottie's fork) into the Rails asset pipeline."
   s.license     = 'MIT'
 
   s.files       = Dir['{vendor,lib}/**/*'] + %w( MIT-LICENSE Rakefile README.md )
+
+  s.required_ruby_version = '>= 1.9.3'
 
   s.add_dependency 'railties', '>= 3.1', '< 5'
 end

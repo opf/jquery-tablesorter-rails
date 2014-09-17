@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.12.8 (2014-09-17)
+
+* Upgrade tablesorter to v2.17.8
+* Set required Ruby version to >= 1.9.3
+
 #### v1.12.7 (2014-08-10)
 
 * Upgrade tablesorter to v2.17.7

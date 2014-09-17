@@ -1,6 +1,6 @@
 /*!
  * tablesorter pager plugin
- * updated 8/1/2014 (v2.17.6)
+ * updated 9/15/2014 (v2.17.8)
  */
 /*jshint browser:true, jquery:true, unused:false */
 ;(function($) {
@@ -58,12 +58,15 @@
 			// starting page of the pager (zero based index)
 			page: 0,
 
-		// reset pager after filtering; set to desired page #
-		// set to false to not change page at filter start
+			// reset pager after filtering; set to desired page #
+			// set to false to not change page at filter start
 			pageReset: 0,
 
 			// Number of visible rows
 			size: 10,
+
+			// Number of options to include in the pager number selector
+			maxOptionSize: 20,
 
 			// Save pager page & size if the storage script is loaded (requires $.tablesorter.storage in jquery.tablesorter.widgets.js)
 			savePages: true,
@@ -186,10 +189,37 @@
 					if ( p.$goto.length ) {
 						t = '';
 						pg = Math.min( p.totalPages, p.filteredPages );
-						for ( i = 1; i <= pg; i++ ) {
-							t += '<option>' + i + '</option>';
+						// Filter the options page number link array if it's larger than 'maxOptionSize'
+						// as large page set links will slow the browser on large dom inserts
+						var skip_set_size = Math.floor(pg / p.maxOptionSize),
+						large_collection = pg > p.maxOptionSize,
+						current_page = p.page + 1,
+						start_page = 1,
+						end_page = pg,
+						option_pages = [];
+						//construct default options pages array
+						var option_pages_start_page = (large_collection && current_page == 1) ? skip_set_size : 1;
+						for (i = option_pages_start_page; i <= pg;) {
+ 							option_pages.push(i);
+							i = large_collection ? i + skip_set_size : i++;
+ 						}
+						if (large_collection) {
+							var central_focus_size = Math.floor(p.maxOptionSize / 2) - 1,
+							lower_focus_window = Math.abs(Math.floor(current_page - central_focus_size/2)),
+							focus_option_pages = [];
+							start_page = Math.min(current_page, lower_focus_window);
+							end_page = start_page + central_focus_size;
+							//construct an array to get a focus set around the current page
+							for (i = start_page; i <= end_page ; i++) focus_option_pages.push(i);
+							var insert_index = Math.floor(option_pages.length / 2) - Math.floor(focus_option_pages.length / 2);
+							Array.prototype.splice.apply(option_pages, [ insert_index, focus_option_pages.length ].concat(focus_option_pages));
+							option_pages.sort(function sortNumber(a,b) { return a - b; });
 						}
-						p.$goto.html(t).val( p.page + 1 );
+						for ( i = 0; i < option_pages.length; i++) {
+							t += '<option>' + option_pages[i] + '</option>';
+						}
+						p.$goto[0].innerHTML = t;
+						p.$goto[0].value = current_page;
 					}
 					// rebind startRow/page inputs
 					$out.find('.ts-startRow, .ts-page').unbind('change').bind('change', function(){
@@ -532,9 +562,8 @@
 			}
 			updatePageDisplay(table, p);
 			if ( !p.isDisabled ) { fixHeight(table, p); }
-			$t.trigger('applyWidgets');
 			if (table.isUpdating) {
-				$t.trigger("updateComplete", table);
+				$t.trigger('updateComplete', [ table, true ]);
 			}
 		},
 
@@ -553,6 +582,7 @@
 					.removeAttr('aria-describedby')
 					.find('tr.pagerSavedHeightSpacer').remove();
 				renderTable(table, table.config.rowsCopy, p);
+				$(table).trigger('applyWidgets');
 				if (table.config.debug) {
 					ts.log('pager disabled');
 				}
@@ -621,7 +651,7 @@
 					.trigger('pageMoved', p)
 					.trigger('applyWidgets');
 				if (table.isUpdating) {
-					$t.trigger('updateComplete');
+					$t.trigger('updateComplete', [ table, true ]);
 				}
 			}
 		},
@@ -751,7 +781,7 @@
 				p.regexRows = new RegExp('(' + (wo.filter_filteredRow || 'filtered') + '|' + c.selectorRemove.replace(/^(\w+\.)/g,'') + '|' + c.cssChildRow + ')');
 
 				$t
-					.unbind('filterStart filterEnd sortEnd disable enable destroy update updateRows updateAll addRows pageSize '.split(' ').join('.pager '))
+					.unbind('filterStart filterEnd sortEnd disable enable destroy updateComplete pageSize '.split(' ').join('.pager '))
 					.bind('filterStart.pager', function(e, filters) {
 						p.currentFilters = filters;
 						// don't change page is filters are the same (pager updating, etc)
@@ -769,6 +799,7 @@
 							// update page display first, so we update p.filteredPages
 							updatePageDisplay(table, p, false);
 							moveToPage(table, p, false);
+							c.$table.trigger('applyWidgets');
 							fixHeight(table, p);
 						}
 					})
@@ -784,12 +815,18 @@
 						e.stopPropagation();
 						destroyPager(table, p);
 					})
-					.bind('update updateRows updateAll addRows '.split(' ').join('.pager '), function(e){
+					.bind('updateComplete.pager', function(e, table, triggered){
 						e.stopPropagation();
+						// table can be unintentionally undefined in tablesorter v2.17.7 and earlier
+						if ( !table || triggered ) { return; }
 						fixHeight(table, p);
-						var $rows = c.$tbodies.eq(0).children('tr');
+						var $rows = c.$tbodies.eq(0).children('tr').not(c.selectorRemove);
 						p.totalRows = $rows.length - ( p.countChildRows ? 0 : $rows.filter('.' + c.cssChildRow).length );
 						p.totalPages = Math.ceil( p.totalRows / p.size );
+						if ($rows.length && c.rowsCopy && c.rowsCopy.length === 0) {
+							// make a copy of all table rows once the cache has been built
+							updateCache(table);
+						}
 						updatePageDisplay(table, p);
 						hideRows(table, p);
 					})
