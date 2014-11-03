@@ -75,6 +75,7 @@ Avaliable theme names:
 * theme.grey
 * theme.ice
 * theme.jui
+* theme.metro-dark
 
 pager theme:
 
