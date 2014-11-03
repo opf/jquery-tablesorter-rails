@@ -18,11 +18,6 @@ namespace :jquery_tablesorter do
     stylesheet_dir = File.join('vendor', 'assets', 'stylesheets', 'jquery-tablesorter')
     copy_files(Dir.glob(File.join('tablesorter', 'css', '*.css')), stylesheet_dir)
 
-    # images
-    #
-    images_dir = File.join('vendor', 'assets', 'images', 'jquery-tablesorter')
-    copy_files(Dir.glob(File.join('tablesorter', 'css', 'images', '*')), images_dir)
-
     # addons
     #
     ## pager
@@ -32,7 +27,7 @@ namespace :jquery_tablesorter do
     pager_javascript_dir = File.join(javascript_dir, 'addons', 'pager')
     copy_files([File.join('tablesorter', 'addons', 'pager', 'jquery.tablesorter.pager.js')], pager_javascript_dir)
 
-    pager_images_dir = File.join(images_dir, 'addons', 'pager', 'icons')
+    pager_images_dir = File.join('vendor', 'assets', 'images', 'jquery-tablesorter', 'addons', 'pager', 'icons')
     copy_files(Dir.glob(File.join('tablesorter', 'addons', 'pager', 'icons', '*')), pager_images_dir)
 
 
@@ -55,11 +50,4 @@ namespace :jquery_tablesorter do
     end
   end
 
-  desc 'Sanitize image paths'
-  task :sanitize_image_paths do
-    Dir.glob(File.join('vendor', 'assets', 'stylesheets', 'jquery-tablesorter', '*.css')).each do |file_path|
-      content = File.read(file_path).gsub(/url\(images\//, 'url(/assets/jquery-tablesorter/')
-      File.open(file_path, 'w') {|file| file.write content}
-    end
-  end
 end
