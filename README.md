@@ -24,9 +24,9 @@ Or install it yourself as:
 
 ## Requirements
 
-Rails 3.1 and higher (tested up to 4.1)
+Rails 3.1 and higher (tested up to 4.2)
 
-Tested with ruby 1.9.3 - 2.1.4
+Tested with ruby 1.9.3 - 2.1.5
 
 ## Usage
 
@@ -73,11 +73,11 @@ Avaliable theme names:
 * theme.dropbox
 * theme.green
 * theme.grey
-* theme.ice
+* theme.ice.css (file extension required due to sprockets, see [issue #3](https://github.com/themilkman/jquery-tablesorter-rails/issues/3))
 * theme.jui
 * theme.metro-dark
 
-pager theme:
+Pager theme:
 
 ```css
 /*
