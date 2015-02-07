@@ -4,7 +4,7 @@
 
 Simple integration of jquery-tablesorter into the asset pipeline.
 
-Current tablesorter version: 2.18.4 (12/22/2014), [documentation]
+Current tablesorter version: 2.19.0 (2/7/2015), [documentation]
 
 Any issue associated with the js/css files, please report to [Mottie's fork].
 
@@ -26,7 +26,7 @@ Or install it yourself as:
 
 Rails 3.1 and higher (tested up to 4.2)
 
-Tested with ruby 1.9.3 - 2.1.5
+Tested with ruby 1.9.3 - 2.2.0
 
 ## Usage
 
