@@ -24,7 +24,7 @@ Or install it yourself as:
 
 ## Requirements
 
-Rails 3.1 and higher (tested up to 4.2)
+Rails 3.2 and higher (tested up to 4.2)
 
 Tested with ruby 1.9.3 - 2.2.0
 
