@@ -1,4 +1,4 @@
-/*! TableSorter (FORK) v2.21.1 *//*
+/*! TableSorter (FORK) v2.21.2 *//*
 * Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
@@ -34,7 +34,7 @@
 
 			var ts = this;
 
-			ts.version = '2.21.1';
+			ts.version = '2.21.2';
 
 			ts.parsers = [];
 			ts.widgets = [];
@@ -1252,7 +1252,6 @@
 			ts.computeColumnIndex = function(trs) {
 				var matrix = [],
 				lookup = {},
-				cols = 0, // determine the number of columns
 				i, j, k, l, $cell, cell, cells, rowIndex, cellId, rowSpan, colSpan, firstAvailCol, matrixrow;
 				for (i = 0; i < trs.length; i++) {
 					cells = trs[i].cells;
@@ -1274,7 +1273,6 @@
 							}
 						}
 						lookup[cellId] = firstAvailCol;
-						cols = Math.max(firstAvailCol, cols);
 						// add data-column
 						$cell.attr({ 'data-column' : firstAvailCol }); // 'data-row' : rowIndex
 						for (k = rowIndex; k < rowIndex + rowSpan; k++) {
@@ -1288,8 +1286,7 @@
 						}
 					}
 				}
-				// may not be accurate if # header columns !== # tbody columns
-				return cols + 1; // add one because it's a zero-based index
+				return matrixrow.length;
 			};
 
 			// *** Process table ***
