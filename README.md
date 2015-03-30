@@ -38,7 +38,7 @@ In your `application.js`
 //= require jquery-tablesorter
 ```
 
-This will require all jquery-tablesorter files (excluding addons and extras).
+This will require all core jquery-tablesorter files. Please note: This loads only the core-widgets and will neither include the extracted widgets nor any files from the addons and extras directories. Those files must be required manually as shown below.
 
 Or you can include single file with:
 
