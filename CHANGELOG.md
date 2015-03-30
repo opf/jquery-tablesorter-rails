@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.16.3 (2015-03-30)
+
+* Upgrade tablesorter to v2.21.4
+* Readme: Clarified how to require JS files
+
 #### v1.16.2 (2015-03-26)
 
 * Upgrade tablesorter to v2.21.3
