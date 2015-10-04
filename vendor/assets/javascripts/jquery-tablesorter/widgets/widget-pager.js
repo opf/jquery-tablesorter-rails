@@ -1,4 +1,4 @@
-/*! Widget: Pager - updated 8/19/2015 (v2.23.1) */
+/*! Widget: Pager - updated 10/4/2015 (v2.23.5) */
 /* Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -171,6 +171,7 @@
 			p.oldAjaxSuccess = p.oldAjaxSuccess || wo.pager_ajaxObject.success;
 			c.appender = tsp.appender;
 			p.initializing = true;
+			p.showAll = false;
 			if (wo.pager_savePages && ts.storage) {
 				t = ts.storage(table, wo.pager_storageKey) || {}; // fixes #387
 				p.page = ( isNaN(t.page) ? p.page : t.page ) || p.setPage || 0;
@@ -878,7 +879,7 @@
 				}
 				c.$table.trigger('pagerChange', c);
 			}
-			if ( !wo.pager_removeRows ) {
+			if ( !wo.pager_removeRows && !p.showAll ) {
 				tsp.hideRows(table, c);
 			} else {
 				ts.clearTableBody(table);
@@ -921,17 +922,18 @@
 			if ( p.ajax ) {
 				tsp.pagerArrows(c, true);
 			} else {
-				p.isDisabled = true;
 				$.data(table, 'pagerLastPage', p.page);
 				$.data(table, 'pagerLastSize', p.size);
 				p.page = 0;
 				p.size = p.totalRows;
 				p.totalPages = 1;
+				p.showAll = true;
 				c.$table
 					.addClass('pagerDisabled')
 					.removeAttr('aria-describedby')
 					.find('tr.pagerSavedHeightSpacer').remove();
 				tsp.renderTable(table, c.rowsCopy);
+				p.isDisabled = true;
 				c.$table.trigger('applyWidgets');
 				if (c.debug) {
 					console.log('Pager: Disabled');
@@ -1100,6 +1102,7 @@
 		enablePager: function(table, c, triggered){
 			var info, p = c.pager;
 			p.isDisabled = false;
+			p.showAll = false;
 			p.page = $.data(table, 'pagerLastPage') || p.page || 0;
 			p.size = $.data(table, 'pagerLastSize') || parseInt(p.$size.find('option[selected]').val(), 10) || p.size || p.setSize || 10;
 			p.$size.val(p.size); // set page size
