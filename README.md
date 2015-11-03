@@ -4,7 +4,7 @@
 
 Simple integration of jquery-tablesorter into the asset pipeline.
 
-Current tablesorter version: 2.23.5 (10/4/2015), [documentation]
+Current tablesorter version: 2.24.2 (11/2/2015), [documentation]
 
 Any issue associated with the js/css files, please report to [Mottie's fork].
 

@@ -1,3 +1,3 @@
 module JqueryTablesorter
-  VERSION = '1.18.5'
+  VERSION = '1.19.0'
 end
