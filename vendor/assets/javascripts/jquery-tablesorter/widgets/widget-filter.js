@@ -1,4 +1,4 @@
-/*! Widget: filter - updated 10/31/2015 (v2.24.0) *//*
+/*! Widget: filter - updated 11/4/2015 (v2.24.3) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -838,6 +838,8 @@
 				c.lastCombinedFilter = null;
 				c.lastSearch = [];
 			}
+			// convert filters to strings (maybe not the best method)- see #1070
+			filters = filters.join( '\u0000' ).split( '\u0000' );
 			if ( wo.filter_initialized ) {
 				c.$table.trigger( 'filterStart', [ filters ] );
 			}
@@ -1708,6 +1710,10 @@
 	ts.setFilters = function( table, filter, apply, skipFirst ) {
 		var c = table ? $( table )[0].config : '',
 			valid = ts.getFilters( table, true, filter, skipFirst );
+		// default apply to "true"
+		if ( typeof apply === 'undefined' ) {
+			apply = true;
+		}
 		if ( c && apply ) {
 			// ensure new set filters are applied, even if the search is the same
 			c.lastCombinedFilter = null;
