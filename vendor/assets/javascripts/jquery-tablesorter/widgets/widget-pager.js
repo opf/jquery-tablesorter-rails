@@ -1,4 +1,4 @@
-/*! Widget: Pager - updated 10/31/2015 (v2.24.0) */
+/*! Widget: Pager - updated 11/10/2015 (v2.24.4) */
 /* Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -13,7 +13,7 @@
 		priority: 55, // load pager after filter widget
 		options : {
 			// output default: '{page}/{totalPages}'
-			// possible variables: {page}, {totalPages}, {filteredPages}, {startRow}, {endRow}, {filteredRows} and {totalRows}
+			// possible variables: {size}, {page}, {totalPages}, {filteredPages}, {startRow}, {endRow}, {filteredRows} and {totalRows}
 			pager_output: '{startRow} to {endRow} of {totalRows} rows', // '{page}/{totalPages}'
 
 			// apply disabled classname to the pager arrows when the rows at either extreme is visible
@@ -654,6 +654,12 @@
 				wo = c.widgetOptions;
 			// process data
 			if ( $.isFunction(wo.pager_ajaxProcessing) ) {
+
+				// in case nothing is returned by ajax, empty out the table; see #1032
+				// but do it before calling pager_ajaxProcessing because that function may add content
+				// directly to the table
+				c.$tbodies.eq(0).empty();
+
 				// ajaxProcessing result: [ total, rows, headers ]
 				var i, j, t, hsh, $f, $sh, $headers, $h, icon, th, d, l, rr_count, len,
 					$table = c.$table,
@@ -712,9 +718,6 @@
 						if (wo.pager_processAjaxOnInit) {
 							c.$tbodies.eq(0).html( tds );
 						}
-					} else {
-						// nothing returned by ajax, empty out the table; see #1032
-						c.$tbodies.eq(0).empty();
 					}
 					wo.pager_processAjaxOnInit = true;
 					// only add new header text if the length matches

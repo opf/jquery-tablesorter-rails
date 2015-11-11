@@ -1,4 +1,4 @@
-﻿/*! Parser: filetype *//*
+﻿/*! Parser: filetype - updated 11/10/2015 (v2.24.4) *//*
  * When a file type extension is found, the equivalent name is
  * prefixed into the parsed data, so sorting occurs in groups
  */
@@ -43,6 +43,7 @@
 			var t,
 				c = table.config,
 				wo = c.widgetOptions,
+				groupSeparator = wo.group_separator || '-',
 				i = s.lastIndexOf('.'),
 				sep = $.tablesorter.fileTypes.separator,
 				m = $.tablesorter.fileTypes.matching,
@@ -60,12 +61,33 @@
 				if (m.indexOf(t) >= 0) {
 					for (i in types) {
 						if ((sep + types[i] + sep).indexOf(t) >= 0) {
-							return i + (wo.group_separator ? wo.group_separator : '-') + s;
+							// groupSeparator may use a regular expression!
+							return i + ( groupSeparator.toString().charAt(0) !== '/' ? wo.group_separator : '-' ) + s;
 						}
 					}
 				}
 			}
 			return s;
+		},
+		type: 'text'
+	});
+
+	// sort by file extension
+	// converts "this.is.an.image.jpg" into "jpg.this.is.an.image"
+	$.tablesorter.addParser({
+		id: 'file-extension',
+		is: function() {
+			return false;
+		},
+		format: function( str ) {
+			var ext,
+				parts = str.split( '.' );
+			if ( parts.length ) {
+				ext = parts.pop();
+				parts.unshift( ext );
+				return parts.join( '.' );
+			}
+			return str;
 		},
 		type: 'text'
 	});
