@@ -1,4 +1,4 @@
-/* Widget: print - updated 11/2/2015 (v2.24.1) *//*
+/* Widget: print - updated 11/22/2015 (v2.24.6) *//*
  * Requires tablesorter v2.8+ and jQuery 1.2.6+
  */
 /*jshint browser:true, jquery:true, unused:false */
@@ -33,7 +33,9 @@
 					// hide filtered rows
 					', .' + ( wo.filter_filteredRow || 'filtered' ) + ' { display: none; }' +
 					// hide sort arrows
-					'.' + ( ts.css.header || 'tablesorter-header' ) + ' { background-image: none !important; }';
+					'.' + ( ts.css.header || 'tablesorter-header' ) + ' { background-image: none !important; }' +
+
+					'@media print { .print_widget_hidden { display: none; } }';
 
 			// replace content with data-attribute content
 			$table.find('[' + wo.print_dataAttrib + ']').each(function(){
@@ -81,21 +83,27 @@
 
 		printOutput : function(c, data, style) {
 			var wo = c.widgetOptions,
+				lang = ts.language,
 				generator = window.open( '', wo.print_title, printTable.popupStyle ),
-				t = wo.print_title || c.$table.find('caption').text() || c.$table[0].id || document.title || 'table';
+				t = wo.print_title || c.$table.find('caption').text() || c.$table[0].id || document.title || 'table',
+				button = wo.print_now ? '' : '<div class="print_widget_hidden"><a href="javascript:window.print();">' +
+					'<button type="button">' + lang.button_print + '</button></a> <a href="javascript:window.close();">' +
+					'<button type="button">' + lang.button_close + '</button></a><hr></div>';
 			generator.document.write(
 				'<html><head><title>' + t + '</title>' +
 				( wo.print_styleSheet ? '<link rel="stylesheet" href="' + wo.print_styleSheet + '">' : '' ) +
 				'<style>' + style + '</style>' +
-				'</head><body>' + data + '</body></html>'
+				'</head><body>' + button + data + '</body></html>'
 			);
 			generator.document.close();
 			// use timeout to allow browser to build DOM before printing
 			// Print preview in Chrome doesn't work without this code
-			setTimeout( function() {
-				generator.print();
-				generator.close();
-			}, 10 );
+			if ( wo.print_now ) {
+				setTimeout( function() {
+					generator.print();
+					generator.close();
+				}, 10 );
+			}
 			return true;
 		},
 
@@ -104,6 +112,9 @@
 		}
 
 	};
+
+	ts.language.button_close = 'Close';
+	ts.language.button_print = 'Print';
 
 	ts.addWidget({
 		id: 'print',
@@ -114,6 +125,7 @@
 			print_columns    : 'selected',  // (a)ll, (v)isbible or (s)elected (if columnSelector widget is added)
 			print_extraCSS   : '',          // add any extra css definitions for the popup window here
 			print_styleSheet : '',          // add the url of your print stylesheet
+			print_now        : true,        // Open the print dialog immediately if true
 			// callback executed when processing completes
 			// to continue printing, use the following function:
 			// function( config, $table, printStyle ) {

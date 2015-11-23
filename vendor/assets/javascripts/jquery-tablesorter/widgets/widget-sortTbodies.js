@@ -1,4 +1,4 @@
-/*! tablesorter tbody sorting widget (BETA) - 10/31/2015 (v2.24.0)
+/*! tablesorter tbody sorting widget (BETA) - 11/22/2015 (v2.24.6)
  * Requires tablesorter v2.22.2+ and jQuery 1.4+
  * by Rob Garrison
  */
@@ -124,7 +124,7 @@
 								// fall back to built-in numeric sort
 								// var sort = $.tablesorter['sort' + s](a, b, dir, colMax, table);
 								sort = c.numberSorter ? c.numberSorter( colA, colB, dir, colMax, table ) :
-									ts[ 'sortNumeric' + ( dir ? 'Asc' : 'Desc' ) ]( colA, colB, num, colMax, col, table );
+									ts[ 'sortNumeric' + ( dir ? 'Asc' : 'Desc' ) ]( colA, colB, num, colMax, col, c );
 							} else {
 								// set a & b depending on sort direction
 								x = dir ? colA : colB;

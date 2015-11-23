@@ -1,4 +1,4 @@
-/*! Widget: math - updated 11/10/2015 (v2.24.4) *//*
+/*! Widget: math - updated 11/22/2015 (v2.24.6) *//*
 * Requires tablesorter v2.16+ and jQuery 1.7+
 * by Rob Garrison
 */
@@ -40,11 +40,17 @@
 
 		// get all of the row numerical values in an arry
 		getRow : function( c, $el ) {
-			var wo = c.widgetOptions,
+			var $cells,
+				wo = c.widgetOptions,
 				arry = [],
 				$row = $el.closest( 'tr' ),
+				isFiltered = $row.hasClass( wo.filter_filteredRow || 'filtered' ),
+				hasFilter = wo.math_rowFilter;
+			if ( hasFilter ) {
+				$row = $row.filter( hasFilter );
+			}
+			if ( !isFiltered || hasFilter ) {
 				$cells = $row.children().not( '[' + wo.math_dataAttrib + '=ignore]' );
-			if ( !$row.hasClass( wo.filter_filteredRow || 'filtered' ) ) {
 				if ( wo.math_ignore.length ) {
 					$cells = $cells.not( '[data-column=' + wo.math_ignore.join( '],[data-column=' ) + ']' );
 				}
@@ -57,9 +63,10 @@
 
 		// get all of the column numerical values in an arry
 		getColumn : function( c, $el, type ) {
-			var index, $t, len, $mathRows, mathAbove,
+			var index, $t, $tr, len, $mathRows, mathAbove,
 				arry = [],
 				wo = c.widgetOptions,
+				hasFilter = wo.math_rowFilter,
 				mathAttr = wo.math_dataAttrib,
 				filtered = wo.filter_filteredRow || 'filtered',
 				cIndex = parseInt( $el.attr( 'data-column' ), 10 ),
@@ -71,11 +78,15 @@
 				len = $rows.index( $row );
 				index = len;
 				while ( index >= 0 ) {
-					$t = $rows.eq( index ).children().filter( '[data-column=' + cIndex + ']' );
+					$tr = $rows.eq( index );
+					if ( hasFilter ) {
+						$tr = $tr.filter( wo.math_rowFilter );
+					}
+					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
 					mathAbove = $t.filter( '[' + mathAttr + '^=above]' ).length;
 					// ignore filtered rows & rows with data-math="ignore" (and starting row)
-					if ( ( !$rows.eq( index ).hasClass( filtered ) &&
-							$rows.eq( index ).not( '[' + mathAttr + '=ignore]' ).length &&
+					if ( ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
+							$tr.not( '[' + mathAttr + '=ignore]' ).length &&
 							index !== len ) ||
 							mathAbove && index !== len ) {
 						// stop calculating 'above', when encountering another 'above'
@@ -91,12 +102,16 @@
 				len = $rows.length;
 				// index + 1 to ignore starting node
 				for ( index = $rows.index( $row ) + 1; index < len; index++ ) {
-					$t = $rows.eq( index ).children().filter( '[data-column=' + cIndex + ']' );
+					$tr = $rows.eq( index );
+					if ( hasFilter ) {
+						$tr = $tr.filter( hasFilter );
+					}
+					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
 					if ( $t.filter( '[' + mathAttr + '^=below]' ).length ) {
 						break;
 					}
-					if ( !$rows.eq( index ).hasClass( filtered ) &&
-							$rows.eq( index ).not( '[' + mathAttr + '=ignore]' ).length &&
+					if ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
+							$tr.not( '[' + mathAttr + '=ignore]' ).length &&
 							$t.length ) {
 						arry.push( math.processText( c, $t ) );
 					}
@@ -106,8 +121,12 @@
 				$mathRows = $rows.not( '[' + mathAttr + '=ignore]' );
 				len = $mathRows.length;
 				for ( index = 0; index < len; index++ ) {
-					$t = $mathRows.eq( index ).children().filter( '[data-column=' + cIndex + ']' );
-					if ( !$mathRows.eq( index ).hasClass( filtered ) &&
+					$tr = $mathRows.eq( index );
+					if ( hasFilter ) {
+						$tr = $tr.filter( hasFilter );
+					}
+					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
+					if ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
 						$t.not( '[' + mathAttr + '^=above],[' + mathAttr + '^=below],[' + mathAttr + '^=col]' ).length &&
 						!$t.is( $el ) ) {
 						arry.push( math.processText( c, $t ) );
@@ -124,11 +143,15 @@
 				wo = c.widgetOptions,
 				mathAttr = wo.math_dataAttrib,
 				filtered = wo.filter_filteredRow || 'filtered',
+				hasFilter = wo.filter_rowFilter,
 				$rows = c.$table.children( 'tbody' ).children().not( '[' + mathAttr + '=ignore]' );
 			rowLen = $rows.length;
 			for ( rowIndex = 0; rowIndex < rowLen; rowIndex++ ) {
 				$row = $rows.eq( rowIndex );
-				if ( !$row.hasClass( filtered ) ) {
+				if ( hasFilter ) {
+					$row = $row.filter( hasFilter );
+				}
+				if ( !$row.hasClass( filtered ) || hasFilter ) {
 					$cells = $row.children().not( '[' + mathAttr + '=ignore]' );
 					cellLen = $cells.length;
 					// $row.children().each(function(){
@@ -157,7 +180,7 @@
 		recalculate : function(c, wo, init) {
 			if ( c && ( !wo.math_isUpdating || init ) ) {
 
-				var time, mathAttr, $mathCells;
+				var undef, time, mathAttr, $mathCells;
 				if ( c.debug ) {
 					time = new Date();
 				}
@@ -192,12 +215,20 @@
 				}
 
 				// update internal cache
-				ts.update( c );
+				ts.update( c, undef, function(){
+					math.updateComplete( c );
+				});
 
 				if ( c.debug ) {
 					console.log( 'Math widget update completed' + ts.benchmark( time ) );
 				}
 			}
+		},
+
+		updateComplete : function( c ) {
+			var wo = c.widgetOptions;
+			if ( wo.math_isUpdating && c.debug && console.groupEnd ) { console.groupEnd(); }
+			wo.math_isUpdating = false;
 		},
 
 		mathType : function( c, $cells, priority ) {
@@ -488,7 +519,9 @@
 			math_suffix   : '',
 			// no matching math elements found (text added to cell)
 			math_none     : 'N/A',
-			math_event    : 'recalculate'
+			math_event    : 'recalculate',
+			// use this filter to target specific rows (e.g. ':visible', or ':not(.empty-row)')
+			math_rowFilter: ''
 		},
 		init : function( table, thisWidget, c, wo ) {
 			// filterEnd fires after updateComplete
@@ -507,8 +540,7 @@
 				})
 				.on( update + '.tsmath', function() {
 					setTimeout( function(){
-						if ( wo.math_isUpdating && c.debug && console.groupEnd ) { console.groupEnd(); }
-						wo.math_isUpdating = false;
+						math.updateComplete( c );
 					}, 40 );
 				});
 			wo.math_isUpdating = false;

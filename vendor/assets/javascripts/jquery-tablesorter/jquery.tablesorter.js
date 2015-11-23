@@ -1,4 +1,4 @@
-/*! TableSorter (FORK) v2.24.5 *//*
+/*! TableSorter (FORK) v2.24.6 *//*
 * Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
@@ -21,7 +21,7 @@
 	'use strict';
 	var ts = $.tablesorter = {
 
-		version : '2.24.5',
+		version : '2.24.6',
 
 		parsers : [],
 		widgets : [],
@@ -189,6 +189,9 @@
 			bottom   : false
 		},
 
+		// placeholder date parser data (globalize)
+		dates : {},
+
 		// These methods can be applied on table.config instance
 		instanceMethods : {},
 
@@ -312,10 +315,10 @@
 				$table
 				.unbind( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace )
 				.bind( 'sortBegin' + c.namespace + ' sortEnd' + c.namespace, function( e ) {
-					clearTimeout( c.processTimer );
+					clearTimeout( c.timerProcessing );
 					ts.isProcessing( table );
 					if ( e.type === 'sortBegin' ) {
-						c.processTimer = setTimeout( function() {
+						c.timerProcessing = setTimeout( function() {
 							ts.isProcessing( table, true );
 						}, 500 );
 					}
@@ -732,20 +735,24 @@
 		},
 
 		detectParserForColumn : function( c, rows, rowIndex, cellIndex ) {
-			var cur, $node,
+			var cur, $node, row,
 				indx = ts.parsers.length,
 				node = false,
 				nodeValue = '',
 				keepLooking = true;
 			while ( nodeValue === '' && keepLooking ) {
 				rowIndex++;
-				if ( rows[ rowIndex ] ) {
-					node = rows[ rowIndex ].cells[ cellIndex ];
-					nodeValue = ts.getElementText( c, node, cellIndex );
-					$node = $( node );
-					if ( c.debug ) {
-						console.log( 'Checking if value was empty on row ' + rowIndex + ', column: ' +
-							cellIndex + ': "' + nodeValue + '"' );
+				row = rows[ rowIndex ];
+				// stop looking after 50 empty rows
+				if ( row && rowIndex < 50 ) {
+					if ( row.className.indexOf( ts.cssIgnoreRow ) < 0 ) {
+						node = rows[ rowIndex ].cells[ cellIndex ];
+						nodeValue = ts.getElementText( c, node, cellIndex );
+						$node = $( node );
+						if ( c.debug ) {
+							console.log( 'Checking if value was empty on row ' + rowIndex + ', column: ' +
+								cellIndex + ': "' + nodeValue + '"' );
+						}
 					}
 				} else {
 					keepLooking = false;
@@ -1840,6 +1847,8 @@
 			}
 			if ( c.debug ) { time = new Date(); }
 			ts.addWidgetFromClass( table );
+			// prevent "tablesorter-ready" from firing multiple times in a row
+			clearTimeout( c.timerReady );
 			if ( c.widgets.length ) {
 				table.isApplyingWidgets = true;
 				// ensure unique widget ids
@@ -1909,11 +1918,11 @@
 					callback( table );
 				}
 			}
-			setTimeout( function() {
+			c.timerReady = setTimeout( function() {
 				table.isApplyingWidgets = false;
 				$.data( table, 'lastWidgetApplication', new Date() );
-				c.$table.trigger('tablesorter-ready');
-			}, 0 );
+				c.$table.trigger( 'tablesorter-ready' );
+			}, 10 );
 			if ( c.debug ) {
 				widget = c.widgets.length;
 				console.log( 'Completed ' +
