@@ -1,4 +1,4 @@
-/* Widget: print - updated 11/22/2015 (v2.24.6) *//*
+/* Widget: print - updated 12/13/2015 (v2.25.0) *//*
  * Requires tablesorter v2.8+ and jQuery 1.2.6+
  */
 /*jshint browser:true, jquery:true, unused:false */
@@ -12,7 +12,7 @@
 
 		event      : 'printTable',
 		basicStyle : 'table, tr, td, th { border : solid 1px black; border-collapse : collapse; } td, th { padding: 2px; }',
-		popupStyle : 'width=500,height=300',
+		popupStyle : 'width=500,height=300,scrollbars=1,resizable=1',
 
 		init : function(c) {
 			c.$table

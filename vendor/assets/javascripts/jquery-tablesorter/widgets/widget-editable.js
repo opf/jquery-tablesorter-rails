@@ -1,4 +1,4 @@
-/*! Widget: editable - updated 10/31/2015 (v2.24.0) *//*
+/*! Widget: editable - updated 12/13/2015 (v2.25.0) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -222,17 +222,20 @@
 								.data( 'before', valid )
 								.data( 'original', valid )
 								.trigger( 'change' );
-							$.tablesorter.updateCell( c, $this.closest( 'td' ), false, function() {
-								if ( wo.editable_autoResort ) {
-									setTimeout( function() {
-										$.tablesorter.sortOn( c, c.sortList, function() {
-											tse.editComplete( c, wo, c.$table.data( 'contentFocused' ), true );
-										}, true );
-									}, 10 );
-								} else {
-									tse.editComplete( c, wo, c.$table.data( 'contentFocused' ) );
-								}
-							});
+							// prevent error if table was destroyed - see #1099
+							if ( c.table.hasInitialized ) {
+								$.tablesorter.updateCell( c, $this.closest( 'td' ), false, function() {
+									if ( wo.editable_autoResort ) {
+										setTimeout( function() {
+											$.tablesorter.sortOn( c, c.sortList, function() {
+												tse.editComplete( c, wo, c.$table.data( 'contentFocused' ), true );
+											}, true );
+										}, 10 );
+									} else {
+										tse.editComplete( c, wo, c.$table.data( 'contentFocused' ) );
+									}
+								});
+							}
 							return false;
 						}
 					} else if ( !valid && e.type !== 'keydown' ) {

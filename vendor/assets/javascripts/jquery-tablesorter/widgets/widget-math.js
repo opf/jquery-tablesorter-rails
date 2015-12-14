@@ -1,4 +1,4 @@
-/*! Widget: math - updated 11/22/2015 (v2.24.6) *//*
+/*! Widget: math - updated 12/13/2015 (v2.25.0) *//*
 * Requires tablesorter v2.16+ and jQuery 1.7+
 * by Rob Garrison
 */
@@ -22,37 +22,36 @@
 			// name = function returning invalid results
 			// errorIndex = math.error index with an explanation of the error
 			console.log( name, math.error[ errorIndex ] );
-			return c && c.widgetOptions.math_none || 'none'; // text for cell
+			return c && c.widgetOptions.math_none || ''; // text for cell
 		},
 
-		events : ( 'tablesorter-initialized update updateAll updateRows addRows updateCell ' +
-			'filterReset filterEnd ' ).split(' ').join('.tsmath '),
+		events : ( 'tablesorter-initialized update updateAll updateRows addRows updateCell filterReset ' )
+			.split(' ').join('.tsmath '),
 
 		processText : function( c, $cell ) {
-			var txt = $cell.attr( c.textAttribute );
-			if ( typeof txt === 'undefined' ) {
-				txt = $cell[0].textContent || $cell.text();
-			}
+			var txt = ts.getElementText( c, $cell, math.getCellIndex( $cell ) );
 			txt = ts.formatFloat( txt.replace( /[^\w,. \-()]/g, '' ), c.table ) || 0;
 			// isNaN('') => false
 			return isNaN( txt ) ? 0 : txt;
 		},
 
 		// get all of the row numerical values in an arry
-		getRow : function( c, $el ) {
+		getRow : function( c, $el, hasFilter ) {
 			var $cells,
 				wo = c.widgetOptions,
 				arry = [],
 				$row = $el.closest( 'tr' ),
-				isFiltered = $row.hasClass( wo.filter_filteredRow || 'filtered' ),
-				hasFilter = wo.math_rowFilter;
+				isFiltered = $row.hasClass( wo.filter_filteredRow || 'filtered' );
 			if ( hasFilter ) {
 				$row = $row.filter( hasFilter );
 			}
-			if ( !isFiltered || hasFilter ) {
+			if ( hasFilter || !isFiltered ) {
 				$cells = $row.children().not( '[' + wo.math_dataAttrib + '=ignore]' );
 				if ( wo.math_ignore.length ) {
-					$cells = $cells.not( '[data-column=' + wo.math_ignore.join( '],[data-column=' ) + ']' );
+					$cells = $cells.filter( function( indx ) {
+						// using $.inArray is not optimal (needed for IE8)
+						return $.inArray( math.getCellIndex( $( this ) ), wo.math_ignore ) === -1;
+					});
 				}
 				arry = $cells.not( $el ).map( function() {
 					return math.processText( c, $( this ) );
@@ -62,31 +61,38 @@
 		},
 
 		// get all of the column numerical values in an arry
-		getColumn : function( c, $el, type ) {
+		getColumn : function( c, $el, type, hasFilter ) {
 			var index, $t, $tr, len, $mathRows, mathAbove,
-				arry = [],
 				wo = c.widgetOptions,
-				hasFilter = wo.math_rowFilter,
+				arry = [],
+				$row = $el.closest( 'tr' ),
 				mathAttr = wo.math_dataAttrib,
+				mathIgnore = '[' + mathAttr + '=ignore]',
 				filtered = wo.filter_filteredRow || 'filtered',
-				cIndex = parseInt( $el.attr( 'data-column' ), 10 ),
+				cIndex = math.getCellIndex( $el ),
+				// get all rows to keep row indexing
 				$rows = c.$table.children( 'tbody' ).children(),
-				$row = $el.closest( 'tr' );
-			// make sure tfoot rows are AFTER the tbody rows
-			// $rows.add( c.$table.children( 'tfoot' ).children() );
+				mathAttrs = [
+					'[' + mathAttr + '^=above]',
+					'[' + mathAttr + '^=below]',
+					'[' + mathAttr + '^=col]',
+					'[' + mathAttr + '^=all]'
+				];
 			if ( type === 'above' ) {
 				len = $rows.index( $row );
 				index = len;
 				while ( index >= 0 ) {
 					$tr = $rows.eq( index );
+					mathAbove = $tr.children().filter( mathAttrs[0] ).length;
 					if ( hasFilter ) {
-						$tr = $tr.filter( wo.math_rowFilter );
+						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
-					mathAbove = $t.filter( '[' + mathAttr + '^=above]' ).length;
+					$t = $tr.children().filter( function( indx ) {
+						return math.getCellIndex( $( this ) ) === cIndex;
+					});
 					// ignore filtered rows & rows with data-math="ignore" (and starting row)
-					if ( ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
-							$tr.not( '[' + mathAttr + '=ignore]' ).length &&
+					if ( ( ( hasFilter || !$tr.hasClass( filtered ) ) &&
+							$tr.not( mathIgnore ).length &&
 							index !== len ) ||
 							mathAbove && index !== len ) {
 						// stop calculating 'above', when encountering another 'above'
@@ -103,31 +109,34 @@
 				// index + 1 to ignore starting node
 				for ( index = $rows.index( $row ) + 1; index < len; index++ ) {
 					$tr = $rows.eq( index );
+					if ( $tr.children().filter( mathAttrs[1] ).length ) {
+						break;
+					}
 					if ( hasFilter ) {
 						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
-					if ( $t.filter( '[' + mathAttr + '^=below]' ).length ) {
-						break;
-					}
-					if ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
-							$tr.not( '[' + mathAttr + '=ignore]' ).length &&
-							$t.length ) {
+					$t = $tr.children().filter( function( indx ) {
+						return math.getCellIndex( $( this ) ) === cIndex;
+					});
+					if ( ( hasFilter || !$tr.hasClass( filtered ) ) &&
+						$tr.not( mathIgnore ).length &&
+						$t.length ) {
 						arry.push( math.processText( c, $t ) );
 					}
 				}
-
 			} else {
-				$mathRows = $rows.not( '[' + mathAttr + '=ignore]' );
+				$mathRows = $rows.not( mathIgnore );
 				len = $mathRows.length;
 				for ( index = 0; index < len; index++ ) {
 					$tr = $mathRows.eq( index );
 					if ( hasFilter ) {
 						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( '[data-column=' + cIndex + ']' );
-					if ( ( !$tr.hasClass( filtered ) || hasFilter ) &&
-						$t.not( '[' + mathAttr + '^=above],[' + mathAttr + '^=below],[' + mathAttr + '^=col]' ).length &&
+					$t = $tr.children().filter( function( indx ) {
+						return math.getCellIndex( $( this ) ) === cIndex;
+					});
+					if ( ( hasFilter || !$tr.hasClass( filtered ) ) &&
+						$t.not( mathAttrs.join( ',' ) ).length &&
 						!$t.is( $el ) ) {
 						arry.push( math.processText( c, $t ) );
 					}
@@ -137,27 +146,27 @@
 		},
 
 		// get all of the column numerical values in an arry
-		getAll : function( c ) {
+		getAll : function( c, hasFilter ) {
 			var $t, col, $row, rowIndex, rowLen, $cells, cellIndex, cellLen,
 				arry = [],
 				wo = c.widgetOptions,
 				mathAttr = wo.math_dataAttrib,
+				mathIgnore = '[' + mathAttr + '=ignore]',
 				filtered = wo.filter_filteredRow || 'filtered',
-				hasFilter = wo.filter_rowFilter,
-				$rows = c.$table.children( 'tbody' ).children().not( '[' + mathAttr + '=ignore]' );
+				$rows = c.$table.children( 'tbody' ).children().not( mathIgnore );
 			rowLen = $rows.length;
 			for ( rowIndex = 0; rowIndex < rowLen; rowIndex++ ) {
 				$row = $rows.eq( rowIndex );
 				if ( hasFilter ) {
 					$row = $row.filter( hasFilter );
 				}
-				if ( !$row.hasClass( filtered ) || hasFilter ) {
-					$cells = $row.children().not( '[' + mathAttr + '=ignore]' );
+				if ( hasFilter || !$row.hasClass( filtered ) ) {
+					$cells = $row.children().not( mathIgnore );
 					cellLen = $cells.length;
 					// $row.children().each(function(){
 					for ( cellIndex = 0; cellIndex < cellLen; cellIndex++ ) {
 						$t = $cells.eq( cellIndex );
-						col = parseInt( $t.attr( 'data-column' ), 10);
+						col = math.getCellIndex( $t );
 						if ( !$t.filter( '[' + mathAttr + ']' ).length && $.inArray( col, wo.math_ignore ) < 0 ) {
 							arry.push( math.processText( c, $t ) );
 						}
@@ -170,17 +179,48 @@
 		setColumnIndexes : function( c ) {
 			c.$table.after( '<div id="_tablesorter_table_placeholder"></div>' );
 			// detach table from DOM to speed up column indexing
-			var $table = c.$table.detach();
-			ts.computeColumnIndex( $table.children( 'tbody' ).children() );
+			var $table = c.$table.detach(),
+				last = 1,
+				// only target rows with a colspan or rows included in a rowspan
+				$rows = $table.children( 'tbody' ).children().filter( function() {
+					var cells, indx, len,
+						$this = $( this ),
+						include = $this.children( '[colspan]' ).length > 0;
+					if ( last > 1 ) {
+						last--;
+						include = true;
+					} else if ( last < 1 ) {
+						last = 1;
+					}
+					if ( $this.children( '[rowspan]' ).length > 0 ) {
+						cells = this.cells;
+						// find max rowspan (in case more than one cell has a rowspan)
+						for ( indx = 0; indx < cells.length; indx++ ) {
+							last = Math.max( cells[ indx ].rowSpan, last );
+						}
+					}
+					return include;
+				});
+			// pass `c` (table.config) to computeColumnIndex so it won't add a data-column
+			// to every tbody cell, just the ones where the .cellIndex property doesn't match
+			// the calculated cell index - hopefully fixes the lag issue in #1048
+			ts.computeColumnIndex( $rows, c );
 			$( '#_tablesorter_table_placeholder' )
 				.after( $table )
 				.remove();
 		},
 
+		getCellIndex : function( $cell ) {
+			var indx = $cell.attr( 'data-column' );
+			return typeof indx === 'undefined' ? $cell[0].cellIndex : parseInt( indx, 10 );
+		},
+
 		recalculate : function(c, wo, init) {
 			if ( c && ( !wo.math_isUpdating || init ) ) {
 
-				var undef, time, mathAttr, $mathCells;
+				var undef, time, mathAttr, $mathCells, indx, len,
+					changed = false,
+					filters = {};
 				if ( c.debug ) {
 					time = new Date();
 				}
@@ -196,7 +236,7 @@
 				// all non-info tbody cells
 				mathAttr = wo.math_dataAttrib;
 				$mathCells = c.$tbodies.children( 'tr' ).children( '[' + mathAttr + ']' );
-				math.mathType( c, $mathCells, wo.math_priority );
+				changed = math.mathType( c, $mathCells, wo.math_priority ) || changed;
 
 				// only info tbody cells
 				$mathCells = c.$table
@@ -207,20 +247,33 @@
 
 				// find the 'all' total
 				$mathCells = c.$table.children().children( 'tr' ).children( '[' + mathAttr + '^=all]' );
-				math.mathType( c, $mathCells, [ 'all' ] );
-
-				wo.math_isUpdating = true;
-				if ( c.debug ) {
-					console[ console.group ? 'group' : 'log' ]( 'Math widget triggering an update after recalculation' );
-				}
-
-				// update internal cache
-				ts.update( c, undef, function(){
-					math.updateComplete( c );
+				len = $mathCells.length;
+				// get math filter, if any
+				// hasFilter = $row.attr( mathAttr + '-filter' ) || wo.math_rowFilter;
+				$mathCells.each( function( indx, cell ) {
+					var $cell = $( cell ),
+						filter = $mathCells.eq( indx ).attr( mathAttr + '-filter' ) || wo.math_rowFilter;
+					filters[ filter ] = filters[ filter ] ? filters[ filter ].add( $cell ) : $cell;
+				});
+				$.each( filters, function( hasFilter, $cells ) {
+					changed = math.mathType( c, $cells, [ 'all' ], hasFilter ) || changed;
 				});
 
-				if ( c.debug ) {
-					console.log( 'Math widget update completed' + ts.benchmark( time ) );
+				// trigger an update only if cells inside the tbody changed
+				if ( changed ) {
+					wo.math_isUpdating = true;
+					if ( c.debug ) {
+						console[ console.group ? 'group' : 'log' ]( 'Math widget triggering an update after recalculation' );
+					}
+
+					// update internal cache
+					ts.update( c, undef, function(){
+						math.updateComplete( c );
+					});
+
+					if ( c.debug ) {
+						console.log( 'Math widget update completed' + ts.benchmark( time ) );
+					}
 				}
 			}
 		},
@@ -231,23 +284,25 @@
 			wo.math_isUpdating = false;
 		},
 
-		mathType : function( c, $cells, priority ) {
+		mathType : function( c, $cells, priority, hasFilter ) {
 			if ( $cells.length ) {
-				var formula, result, $el, arry, getAll, $targetCells, index, len,
+				var getAll,
+					changed = false,
 					wo = c.widgetOptions,
 					mathAttr = wo.math_dataAttrib,
 					equations = ts.equations;
 				if ( priority[0] === 'all' ) {
-					// no need to get all cells more than once
-					getAll = math.getAll( c );
+					// mathType is called multiple times if more than one "hasFilter" is used
+					getAll = math.getAll( c, hasFilter );
 				}
 				if (c.debug) {
 					console[ console.group ? 'group' : 'log' ]( 'Tablesorter Math widget recalculation' );
 				}
 				// $.each is okay here... only 4 priorities
 				$.each( priority, function( i, type ) {
-					$targetCells = $cells.filter( '[' + mathAttr + '^=' + type + ']' );
-					len = $targetCells.length;
+					var index, arry, formula, result, $el,
+						$targetCells = $cells.filter( '[' + mathAttr + '^=' + type + ']' ),
+						len = $targetCells.length;
 					if ( len ) {
 						if (c.debug) {
 							console[ console.group ? 'group' : 'log' ]( type );
@@ -258,39 +313,58 @@
 							if ( $el.parent().hasClass( wo.filter_filteredRow || 'filtered' ) ) {
 								continue;
 							}
+							hasFilter = $el.attr( mathAttr + '-filter' ) || wo.math_rowFilter;
 							formula = ( $el.attr( mathAttr ) || '' ).replace( type + '-', '' );
-							arry = ( type === 'row' ) ? math.getRow( c, $el ) :
-								( type === 'all' ) ? getAll : math.getColumn( c, $el, type );
+							arry = ( type === 'row' ) ? math.getRow( c, $el, hasFilter ) :
+								( type === 'all' ) ? getAll : math.getColumn( c, $el, type, hasFilter );
 							if ( equations[ formula ] ) {
 								if ( arry.length ) {
 									result = equations[ formula ]( arry, c );
 									if ( c.debug ) {
-										console.log( $el.attr( mathAttr ), arry, '=', result );
+										console.log( $el.attr( mathAttr ), hasFilter ? '("' + hasFilter + '")' : '', arry, '=', result );
 									}
 								} else {
 									// mean will return a divide by zero error, everything else shows an undefined error
 									result = math.invalid( c, formula, formula === 'mean' ? 0 : 'undef' );
 								}
-								math.output( $el, wo, result, arry );
+								changed = math.output( $el, c, result, arry ) || changed;
 							}
 						}
 						if ( c.debug && console.groupEnd ) { console.groupEnd(); }
 					}
 				});
 				if ( c.debug && console.groupEnd ) { console.groupEnd(); }
+				return changed;
 			}
+			return false;
 		},
 
-		output : function( $cell, wo, value, arry ) {
+		output : function( $cell, c, value, arry ) {
 			// get mask from cell data-attribute: data-math-mask="#,##0.00"
-			var mask = $cell.attr( 'data-' + wo.math_data + '-mask' ) || wo.math_mask,
+			var $el,
+				wo = c.widgetOptions,
+				changed = false,
+				prev = $cell.html(),
+				mask = $cell.attr( 'data-' + wo.math_data + '-mask' ) || wo.math_mask,
 				result = ts.formatMask( mask, value, wo.math_wrapPrefix, wo.math_wrapSuffix );
 			if ( typeof wo.math_complete === 'function' ) {
 				result = wo.math_complete( $cell, wo, result, value, arry );
 			}
 			if ( result !== false ) {
+				changed = prev !== result;
 				$cell.html( result );
 			}
+			// check if in a regular tbody, otherwise don't pass a changed flag
+			// to prevent unnecessary updating of the table cache
+			if ( changed ) {
+				$el = $cell.closest( 'tbody' );
+				// content was changed in a tfoot, info-only tbody or the resulting tbody is in a nested table
+				// then don't signal a change
+				if ( !$el.length || $el.hasClass( c.cssInfoBlock ) || $el.parent()[0] !== c.table ) {
+					return false;
+				}
+			}
+			return changed;
 		}
 
 	};
@@ -525,20 +599,24 @@
 		},
 		init : function( table, thisWidget, c, wo ) {
 			// filterEnd fires after updateComplete
-			var update = ts.hasWidget( table, 'filter' ) ? 'filterEnd' : 'updateComplete';
+			var update = ( ts.hasWidget( table, 'filter' ) ? 'filterEnd' : 'updateComplete' ) + '.tsmath';
+			// filterEnd is when the pager hides rows... so bind to pagerComplete
+			math.events += ( ts.hasWidget( table, 'pager' ) ? 'pagerComplete' : 'filterEnd' ) + '.tsmath ';
 			c.$table
-				.off( ( math.events + ' updateComplete.tsmath ' + wo.math_event ).replace( /\s+/g, ' ' ) )
-				.on( math.events + ' ' + wo.math_event, function( e ) {
+				.off( ( math.events + 'updateComplete.tsmath ' + wo.math_event ).replace( /\s+/g, ' ' ) )
+				.on( math.events + wo.math_event, function( e ) {
+					if ( !this.hasInitialized ) { return; }
 					var init = e.type === 'tablesorter-initialized';
 					if ( !wo.math_isUpdating || init ) {
-						if ( !/filter/.test( e.type ) ) {
+						// don't setColumnIndexes on init here, or it gets done twice
+						if ( !/filter/.test( e.type ) && !init ) {
 							// redo data-column indexes on update
-							math.setColumnIndexes( c ) ;
+							math.setColumnIndexes( c );
 						}
 						math.recalculate( c, wo, init );
 					}
 				})
-				.on( update + '.tsmath', function() {
+				.on( update, function() {
 					setTimeout( function(){
 						math.updateComplete( c );
 					}, 40 );
