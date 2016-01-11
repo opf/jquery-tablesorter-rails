@@ -1,4 +1,4 @@
-/* Widget: columnSelector (responsive table widget) - updated 10/31/2015 (v2.24.0) *//*
+/* Widget: columnSelector (responsive table widget) - updated 1/10/2016 (v2.25.1) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Justin Hallett & Rob Garrison
  */
@@ -237,9 +237,12 @@
 			var array = [],
 				temp = ' col:nth-child(' + column + ')';
 			array.push(prefix + temp + ',' + prefix + '_extra_table' + temp);
-			temp = ' tr th:nth-child(' + column + ')';
+			temp = ' tr:not(.hasSpan) th:nth-child(' + column + ')';
 			array.push(prefix + temp + ',' + prefix + '_extra_table' + temp);
-			temp = ' tr td:nth-child(' + column + ')';
+			temp = ' tr:not(.hasSpan) td:nth-child(' + column + ')';
+			array.push(prefix + temp + ',' + prefix + '_extra_table' + temp);
+			// for other cells in colspan columns
+			temp = ' tr td:not(' + prefix + 'HasSpan)[data-column="' + (column - 1) + '"]';
 			array.push(prefix + temp + ',' + prefix + '_extra_table' + temp);
 			return array;
 		},
@@ -290,7 +293,7 @@
 			if (mediaAll.length) {
 				colSel.$breakpoints
 					.prop('disabled', false)
-					.html( tsColSel.queryAll.replace(/\[columns\]/g, mediaAll.join(',')) + breakpts );
+					.text( tsColSel.queryAll.replace(/\[columns\]/g, mediaAll.join(',')) + breakpts );
 			}
 		},
 		updateCols: function(c, wo) {
@@ -312,7 +315,7 @@
 				colSel.$breakpoints.prop('disabled', true);
 			}
 			if (colSel.$style) {
-				colSel.$style.prop('disabled', false).html( styles.length ? styles.join(',') + ' { display: none; }' : '' );
+				colSel.$style.prop('disabled', false).text( styles.length ? styles.join(',') + ' { display: none; }' : '' );
 			}
 			if (wo.columnSelector_saveColumns && ts.storage) {
 				ts.storage( c.$table[0], 'tablesorter-columnSelector', colSel.states );
@@ -327,7 +330,7 @@
 				hasSpans = false,
 				$cells = c.$table
 					.add( $(c.namespace + '_extra_table') )
-					.children('thead, tfoot')
+					.children()
 					.children('tr')
 					.children('th, td'),
 				len = $cells.length;
@@ -338,6 +341,8 @@
 					$cells.eq( index )
 						.addClass( c.namespace.slice( 1 ) + 'columnselectorHasSpan' )
 						.attr( 'data-col-span', span );
+					// add data-column values
+					ts.computeColumnIndex( $cells.eq( index ).parent().addClass( 'hasSpan' ) );
 				}
 			}
 			// only add resize end if using media queries
@@ -357,15 +362,16 @@
 			}
 		},
 		adjustColspans: function(c, wo) {
-			var index, cols, col, span, end,
+			var index, cols, col, span, end, $cell,
 				colSel = c.selector,
 				autoModeOn = colSel.auto,
 				$colspans = $( c.namespace + 'columnselectorHasSpan' ),
 				len = $colspans.length;
 			if ( len ) {
 				for ( index = 0; index < len; index++ ) {
-					col = parseInt( $colspans.eq(index).attr('data-column'), 10 );
-					span = parseInt( $colspans.eq(index).attr('data-col-span'), 10 );
+					$cell = $colspans.eq(index);
+					col = parseInt( $cell.attr('data-column'), 10 ) || $cell[0].cellIndex;
+					span = parseInt( $cell.attr('data-col-span'), 10 );
 					end = col + span;
 					for ( cols = col; cols < end; cols++ ) {
 						if ( !autoModeOn && colSel.states[ cols ] === false ||
@@ -374,9 +380,9 @@
 						}
 					}
 					if ( span ) {
-						$colspans.eq(index).show()[0].colSpan = span;
+						$cell.removeClass( wo.filter_filteredRow )[0].colSpan = span;
 					} else {
-						$colspans.eq(index).hide();
+						$cell.addClass( wo.filter_filteredRow );
 					}
 				}
 			}
@@ -471,12 +477,13 @@
 			tsColSel.init(table, c, wo);
 		},
 		remove: function(table, c, wo, refreshing) {
-			if (refreshing) { return; }
 			var csel = c.selector;
+			if ( refreshing || !csel ) { return; }
 			csel.$container.empty();
 			if (csel.$popup) { csel.$popup.empty(); }
 			csel.$style.remove();
 			csel.$breakpoints.remove();
+			$( c.namespace + 'columnselectorHasSpan' ).removeClass( wo.filter_filteredRow );
 			c.$table.off('updateAll' + namespace + ' update' + namespace);
 		}
 

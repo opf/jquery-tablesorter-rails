@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.20.1 (2016-01-11)
+
+* Upgrade tablesorter to v2.25.1
+* Bump railties dependency to support v5.x
+
 #### v1.20.0 (2015-12-14)
 
 * Upgrade tablesorter to v2.25.0
