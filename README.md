@@ -24,7 +24,7 @@ Or install it yourself as:
 
 ## Requirements
 
-It should work with Rails 3.2 and higher (tested up to 4.2) as well as with ruby 1.9.3 - 2.2.x.
+It should work with Rails 3.2 and higher (tested up to 4.2) as well as with ruby 1.9.3 - 2.3.x.
 Each release is always tested with the latest version of both.
 
 ## Usage
