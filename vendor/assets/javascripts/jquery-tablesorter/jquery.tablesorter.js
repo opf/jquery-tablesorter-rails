@@ -1,4 +1,4 @@
-/*! TableSorter (FORK) v2.25.1 *//*
+/*! TableSorter (FORK) v2.25.2 *//*
 * Client-side table sorting with ease!
 * @requires jQuery v1.2.6+
 *
@@ -21,7 +21,7 @@
 	'use strict';
 	var ts = $.tablesorter = {
 
-		version : '2.25.1',
+		version : '2.25.2',
 
 		parsers : [],
 		widgets : [],
@@ -188,6 +188,10 @@
 			'null'   : 0,
 			top      : true,
 			bottom   : false
+		},
+
+		keyCodes : {
+			enter : 13
 		},
 
 		// placeholder date parser data (globalize)
@@ -458,7 +462,7 @@
 				// only recognize left clicks
 				if ( ( ( e.which || e.button ) !== 1 && !type.match( ' ' + c.pointerClick + ' | sort | keyup ' ) ) ||
 					// allow pressing enter
-					( type === ' keyup ' && e.which !== 13 ) ||
+					( type === ' keyup ' && e.which !== ts.keyCodes.enter ) ||
 					// allow triggering a click event (e.which is undefined) & ignore physical clicks
 					( type.match( ' ' + c.pointerClick + ' ' ) && typeof e.which !== 'undefined' ) ) {
 					return;
@@ -1046,8 +1050,8 @@
 				// find the footer
 				$headers = c.$table
 					.find( 'tfoot tr' )
-					.add( $( c.namespace + '_extra_headers' ).children( 'tr' ) )
 					.children( 'td, th' )
+					.add( $( c.namespace + '_extra_headers' ) )
 					.removeClass( css.join( ' ' ) );
 			// remove all header information
 			c.$headers
