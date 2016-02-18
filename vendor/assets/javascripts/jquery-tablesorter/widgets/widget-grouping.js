@@ -1,4 +1,4 @@
-/*! Widget: grouping - updated 11/10/2015 (v2.24.4) *//*
+/*! Widget: grouping - updated 2/15/2016 (v2.25.4) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -251,10 +251,14 @@
 					$this.toggleClass('collapsed');
 					// nextUntil requires jQuery 1.4+
 					$this.nextUntil('tr.group-header').toggleClass('group-hidden', $this.hasClass('collapsed') );
+					isCollapsed = $this.hasClass('collapsed');
+					// reapply zebra widget after opening collapsed group - see #1156
+					if (!isCollapsed && ts.hasWidget(c.$table, 'zebra')) {
+						ts.applyWidgetId(c.$table, 'zebra');
+					}
 					// save collapsed groups
 					if (wo.group_saveGroups && ts.storage) {
 						$groups = c.$table.find('.group-header');
-						isCollapsed = $this.hasClass('collapsed');
 						if (!wo.group_collapsedGroups[wo.group_collapsedGroup]) {
 							wo.group_collapsedGroups[wo.group_collapsedGroup] = [];
 						}

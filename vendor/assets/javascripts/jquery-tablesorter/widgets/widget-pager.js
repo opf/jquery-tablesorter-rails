@@ -1,4 +1,4 @@
-/*! Widget: Pager - updated 11/22/2015 (v2.24.6) */
+/*! Widget: Pager - updated 2/15/2016 (v2.25.4) */
 /* Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -436,7 +436,7 @@
 		},
 
 		updatePageDisplay: function( c, completed ) {
-			if ( c.pager.initializing ) { return; }
+			if ( c.pager && c.pager.initializing ) { return; }
 			var s, t, $out, options, indx, len,
 				table = c.table,
 				wo = c.widgetOptions,
@@ -1030,7 +1030,8 @@
 			if ( pageMoved !== false && p.initialized && $.isEmptyObject( c.cache ) ) {
 				return tsp.updateCache( c );
 			}
-			var table = c.table,
+			var tmp,
+				table = c.table,
 				wo = c.widgetOptions,
 				l = p.last;
 
@@ -1068,7 +1069,17 @@
 				optAjaxUrl: wo.pager_ajaxUrl
 			};
 			if ( p.ajax ) {
-				tsp.getAjax( c );
+				if ( !wo.pager_processAjaxOnInit && !$.isEmptyObject(wo.pager_initialRows) ) {
+					wo.pager_processAjaxOnInit = true;
+					tmp = wo.pager_initialRows;
+					p.totalRows = typeof tmp.total !== 'undefined' ? tmp.total :
+						( c.debug ? console.error('Pager: no initial total page set!') || 0 : 0 );
+					p.filteredRows = typeof tmp.filtered !== 'undefined' ? tmp.filtered :
+						( c.debug ? console.error('Pager: no initial filtered page set!') || 0 : 0 );
+					tsp.updatePageDisplay( c, false );
+				} else {
+					tsp.getAjax( c );
+				}
 			} else if ( !p.ajax ) {
 				tsp.renderTable( c, c.rowsCopy );
 			}
@@ -1154,25 +1165,32 @@
 		destroyPager: function( c, refreshing ) {
 			var table = c.table,
 				p = c.pager,
-				s = c.widgetOptions.pager_selectors,
+				s = c.widgetOptions.pager_selectors || {},
 				ctrls = [ s.first, s.prev, s.next, s.last, s.gotoPage, s.pageSize ].join( ',' ),
 				namespace = c.namespace + 'pager';
-			p.initialized = false;
-			c.$table.off( namespace );
-			p.$container
-				// hide pager
-				.hide()
-				// unbind pager controls
-				.find( ctrls )
-				.off( namespace );
-			if ( refreshing ) { return; }
-			tsp.showAllRows( c );
-			c.appender = null; // remove pager appender function
-			if ( ts.storage ) {
-				ts.storage( table, c.widgetOptions.pager_storageKey, '' );
+			// check pager object in case two successive pager destroys are triggered
+			// e.g. "destroyPager" then "removeWidget" - see #1155
+			if ( p ) {
+				p.initialized = false;
+				c.$table.off( namespace );
+				p.$container
+					// hide pager
+					.hide()
+					// unbind pager controls
+					.find( ctrls )
+					.off( namespace );
+				if ( refreshing ) { return; }
+				c.appender = null; // remove pager appender function
+				tsp.showAllRows( c );
+				if ( ts.storage ) {
+					ts.storage( table, c.widgetOptions.pager_storageKey, '' );
+				}
+				p.$container = null;
+				p.$goto = null;
+				p.$size = null;
+				c.pager = null;
+				c.rowsCopy = null;
 			}
-			delete table.config.pager;
-			delete table.config.rowsCopy;
 		},
 
 		enablePager: function( c, triggered ) {
