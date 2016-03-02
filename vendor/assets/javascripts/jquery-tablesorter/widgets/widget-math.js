@@ -1,4 +1,4 @@
-/*! Widget: math - updated 12/13/2015 (v2.25.0) *//*
+/*! Widget: math - updated 3/1/2016 (v2.25.5) *//*
 * Requires tablesorter v2.16+ and jQuery 1.7+
 * by Rob Garrison
 */
@@ -21,7 +21,7 @@
 		invalid : function( c, name, errorIndex ) {
 			// name = function returning invalid results
 			// errorIndex = math.error index with an explanation of the error
-			console.log( name, math.error[ errorIndex ] );
+			console.warn( name, math.error[ errorIndex ] );
 			return c && c.widgetOptions.math_none || ''; // text for cell
 		},
 
@@ -48,7 +48,7 @@
 			if ( hasFilter || !isFiltered ) {
 				$cells = $row.children().not( '[' + wo.math_dataAttrib + '=ignore]' );
 				if ( wo.math_ignore.length ) {
-					$cells = $cells.filter( function( indx ) {
+					$cells = $cells.filter( function() {
 						// using $.inArray is not optimal (needed for IE8)
 						return $.inArray( math.getCellIndex( $( this ) ), wo.math_ignore ) === -1;
 					});
@@ -87,7 +87,7 @@
 					if ( hasFilter ) {
 						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( function( indx ) {
+					$t = $tr.children().filter( function() {
 						return math.getCellIndex( $( this ) ) === cIndex;
 					});
 					// ignore filtered rows & rows with data-math="ignore" (and starting row)
@@ -99,7 +99,7 @@
 						if ( mathAbove ) {
 							index = 0;
 						} else if ( $t.length ) {
-							arry.push( math.processText( c, $t ) );
+							arry[ arry.length ] = math.processText( c, $t );
 						}
 					}
 					index--;
@@ -115,13 +115,13 @@
 					if ( hasFilter ) {
 						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( function( indx ) {
+					$t = $tr.children().filter( function() {
 						return math.getCellIndex( $( this ) ) === cIndex;
 					});
 					if ( ( hasFilter || !$tr.hasClass( filtered ) ) &&
 						$tr.not( mathIgnore ).length &&
 						$t.length ) {
-						arry.push( math.processText( c, $t ) );
+						arry[ arry.length ] = math.processText( c, $t );
 					}
 				}
 			} else {
@@ -132,13 +132,13 @@
 					if ( hasFilter ) {
 						$tr = $tr.filter( hasFilter );
 					}
-					$t = $tr.children().filter( function( indx ) {
+					$t = $tr.children().filter( function() {
 						return math.getCellIndex( $( this ) ) === cIndex;
 					});
 					if ( ( hasFilter || !$tr.hasClass( filtered ) ) &&
 						$t.not( mathAttrs.join( ',' ) ).length &&
 						!$t.is( $el ) ) {
-						arry.push( math.processText( c, $t ) );
+						arry[ arry.length ] = math.processText( c, $t );
 					}
 				}
 			}
@@ -168,7 +168,7 @@
 						$t = $cells.eq( cellIndex );
 						col = math.getCellIndex( $t );
 						if ( !$t.filter( '[' + mathAttr + ']' ).length && $.inArray( col, wo.math_ignore ) < 0 ) {
-							arry.push( math.processText( c, $t ) );
+							arry[ arry.length ] = math.processText( c, $t );
 						}
 					}
 				}
@@ -177,13 +177,11 @@
 		},
 
 		setColumnIndexes : function( c ) {
-			c.$table.after( '<div id="_tablesorter_table_placeholder"></div>' );
-			// detach table from DOM to speed up column indexing
-			var $table = c.$table.detach(),
+			var $table = c.$table,
 				last = 1,
 				// only target rows with a colspan or rows included in a rowspan
 				$rows = $table.children( 'tbody' ).children().filter( function() {
-					var cells, indx, len,
+					var cells, indx,
 						$this = $( this ),
 						include = $this.children( '[colspan]' ).length > 0;
 					if ( last > 1 ) {
@@ -205,9 +203,6 @@
 			// to every tbody cell, just the ones where the .cellIndex property doesn't match
 			// the calculated cell index - hopefully fixes the lag issue in #1048
 			ts.computeColumnIndex( $rows, c );
-			$( '#_tablesorter_table_placeholder' )
-				.after( $table )
-				.remove();
 		},
 
 		getCellIndex : function( $cell ) {
@@ -250,11 +245,11 @@
 				len = $mathCells.length;
 				// get math filter, if any
 				// hasFilter = $row.attr( mathAttr + '-filter' ) || wo.math_rowFilter;
-				$mathCells.each( function( indx, cell ) {
-					var $cell = $( cell ),
-						filter = $mathCells.eq( indx ).attr( mathAttr + '-filter' ) || wo.math_rowFilter;
+				for (indx = 0; indx < len; indx++) {
+					var $cell = $mathCells.eq( indx ),
+						filter = $cell.attr( mathAttr + '-filter' ) || wo.math_rowFilter;
 					filters[ filter ] = filters[ filter ] ? filters[ filter ].add( $cell ) : $cell;
-				});
+				}
 				$.each( filters, function( hasFilter, $cells ) {
 					changed = math.mathType( c, $cells, [ 'all' ], hasFilter ) || changed;
 				});
@@ -518,7 +513,7 @@
 					modes = [ el ];
 					maxCount = m;
 				} else if ( m === maxCount ) {
-					modes.push( el );
+					modes[ modes.length ] = el;
 					maxCount = m;
 				}
 			}

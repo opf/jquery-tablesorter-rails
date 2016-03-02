@@ -1,9 +1,9 @@
-/* Widget: print - updated 12/13/2015 (v2.25.0) *//*
+/* Widget: print - updated 3/1/2016 (v2.25.5) *//*
  * Requires tablesorter v2.8+ and jQuery 1.2.6+
  */
 /*jshint browser:true, jquery:true, unused:false */
 /*global jQuery: false */
-;(function($){
+;(function($) {
 	'use strict';
 
 	var ts = $.tablesorter,
@@ -17,10 +17,11 @@
 		init : function(c) {
 			c.$table
 				.unbind(printTable.event)
-				.bind(printTable.event, function(){
+				.bind(printTable.event, function() {
 					// explicitly use table.config.widgetOptions because we want
 					// the most up-to-date values; not the 'wo' from initialization
 					printTable.process(c, c.widgetOptions);
+					return false;
 				});
 		},
 
@@ -38,7 +39,7 @@
 					'@media print { .print_widget_hidden { display: none; } }';
 
 			// replace content with data-attribute content
-			$table.find('[' + wo.print_dataAttrib + ']').each(function(){
+			$table.find('[' + wo.print_dataAttrib + ']').each(function() {
 				$this = $(this);
 				$this.text( $this.attr(wo.print_dataAttrib) );
 			});
@@ -137,7 +138,7 @@
 		init: function(table, thisWidget, c) {
 			printTable.init(c);
 		},
-		remove: function(table, c){
+		remove: function(table, c) {
 			printTable.remove(c);
 		}
 

@@ -1,4 +1,4 @@
-/*! Widget: scroller - updated 10/31/2015 (v2.24.0) *//*
+/*! Widget: scroller - updated 3/1/2016 (v2.25.5) *//*
 	Copyright (C) 2011 T. Connell & Associates, Inc.
 
 	Dual-licensed under the MIT and GPL licenses
@@ -186,7 +186,7 @@
 		},
 
 		setup : function( c, wo ) {
-			var maxHt, tbHt, $hdr, $t, $hCells, $fCells, $tableWrap, events, tmp, detectedWidth,
+			var tbHt, $hdr, $t, $hCells, $fCells, $tableWrap, events, tmp, detectedWidth,
 				$win = $( window ),
 				tsScroller = ts.scroller,
 				namespace = c.namespace + 'tsscroller',
@@ -211,9 +211,10 @@
 				wo.scroller_barSetWidth = detectedWidth !== null ? detectedWidth : 15;
 			}
 
-			maxHt = wo.scroller_height || 300;
+			tmp = $table.children( 'caption' );
 
 			$hdr = $( '<table class="' + $table.attr( 'class' ) + '" cellpadding=0 cellspacing=0>' +
+				( tmp.length ? tmp[ 0 ].outerHTML : '' ) +
 				$table.children( 'thead' )[ 0 ].outerHTML + '</table>' );
 			wo.scroller_$header = $hdr.addClass( c.namespace.slice( 1 ) + '_extra_table' );
 
@@ -247,8 +248,10 @@
 				.wrap( '<div class="' + tscss.scrollerHeader + '" />' )
 				.find( '.' + tscss.header );
 
-			// use max-height, so the height resizes dynamically while filtering
-			$table.wrap( '<div class="' + tscss.scrollerTable + '" style="max-height:' + maxHt + 'px;" />' );
+			// if max-height is greater than 0 use max-height, so the height resizes dynamically while filtering
+			// else let the table not have a vertical scroll
+			$table.wrap( '<div class="' + tscss.scrollerTable +
+				( wo.scroller_height > 0 ? '" style="max-height:' + wo.scroller_height + 'px;">' : '">' ) );
 			$tableWrap = $table.parent();
 
 			// make scroller header sortable
@@ -260,9 +263,8 @@
 			}
 
 			$table
-				.find( 'thead' )
+				.children( 'thead, caption' )
 				.addClass( tscss.scrollerHideElement );
-
 			tbHt = $tableWrap.parent().height();
 
 			// The header will always jump into view if scrolling the table body
@@ -444,7 +446,7 @@
 				.width( setWidth + temp );
 
 			// hide original table thead
-			$table.children( 'thead' ).addClass( tscss.scrollerHideElement );
+			$table.children( 'thead, caption' ).addClass( tscss.scrollerHideElement );
 
 			// update fixed column sizes
 			tsScroller.updateFixed( c, wo );
@@ -478,6 +480,8 @@
 				.addClass( tscss.scrollerFixed )
 				.removeClass( tscss.scrollerWrap )
 				.attr( 'id', '' );
+
+			$fixedColumn.find('caption').html('&nbsp;');
 
 			if ( wo.scroller_addFixedOverlay ) {
 				$fixedColumn.append( '<div class="' + tscss.scrollerFixedPanel + '">' );
