@@ -1,4 +1,4 @@
-/*! Widget: lazyload (BETA) - 10/31/2015 (v2.24.0) *//*
+/*! Widget: lazyload (BETA) - 3/18/2016 (v2.25.6) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -15,11 +15,17 @@
 				$.event.special.scrollstop.latency = wo.lazyload_latency || 250;
 			}
 			ts.lazyload.update( c, wo );
-			var events = [ wo.lazyload_update, 'pagerUpdate', wo.columnSelector_updated || 'columnUpdate', '' ]
-				.join( c.namespace + 'lazyload ' );
-			c.$table.on( events, function() {
-				ts.lazyload.update( c, c.widgetOptions );
-			});
+			var namespace = c.namespace + 'lazyload ',
+				events = [ wo.lazyload_update, 'pagerUpdate', wo.columnSelector_updated || 'columnUpdate', '' ]
+					.join( namespace );
+			c.$table
+				.on( events, function() {
+					ts.lazyload.update( c, c.widgetOptions );
+				})
+				.on( 'filterEnd' + namespace, function() {
+					// give lazyload a nudge after filtering the table. Fixes #1169
+					$(window).scroll();
+				});
 		},
 		update : function( c, wo ) {
 			// add '.' if not already included
@@ -57,7 +63,7 @@
 			lazyload_effect         : 'show',
 			lazyload_container      : window,
 			lazyload_data_attribute : 'original',
-			lazyload_skip_invisible : false,
+			lazyload_skip_invisible : true,
 			lazyload_appear         : null,
 			lazyload_load           : null,
 			lazyload_placeholder    : 'data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
