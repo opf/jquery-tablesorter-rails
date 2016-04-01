@@ -1,4 +1,4 @@
-/*! Widget: lazyload (BETA) - 3/18/2016 (v2.25.6) *//*
+/*! Widget: lazyload (BETA) - 4/1/2016 (v2.25.7) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Rob Garrison
  */
@@ -16,8 +16,12 @@
 			}
 			ts.lazyload.update( c, wo );
 			var namespace = c.namespace + 'lazyload ',
-				events = [ wo.lazyload_update, 'pagerUpdate', wo.columnSelector_updated || 'columnUpdate', '' ]
-					.join( namespace );
+				events = [
+					wo.lazyload_update,
+					'pagerUpdate',
+					wo.columnSelector_updated || 'columnUpdate',
+					''
+				].join( namespace );
 			c.$table
 				.on( events, function() {
 					ts.lazyload.update( c, c.widgetOptions );
@@ -42,6 +46,10 @@
 				load            : wo.lazyload_load,
 				placeholder     : wo.lazyload_placeholder
 			});
+			// give lazyload a nudge after updating the table. Fixes #1169
+			setTimeout(function() {
+				$(window).scroll();
+			}, 1);
 		},
 		remove : function( c, wo ) {
 			c.$table.off( c.namespace + 'lazyload' );
