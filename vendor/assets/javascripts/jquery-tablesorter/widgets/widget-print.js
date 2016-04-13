@@ -1,4 +1,4 @@
-/* Widget: print - updated 3/1/2016 (v2.25.5) *//*
+/* Widget: print - updated 4/11/2016 (v2.25.8) *//*
  * Requires tablesorter v2.8+ and jQuery 1.2.6+
  */
 /*jshint browser:true, jquery:true, unused:false */
@@ -26,7 +26,7 @@
 		},
 
 		process : function(c, wo) {
-			var $this,
+			var $this, data,
 				$table = $('<div/>').append(c.$table.clone()),
 				printStyle = printTable.basicStyle + 'table { width: 100%; }' +
 					// hide filter row
@@ -42,6 +42,13 @@
 			$table.find('[' + wo.print_dataAttrib + ']').each(function() {
 				$this = $(this);
 				$this.text( $this.attr(wo.print_dataAttrib) );
+			});
+
+			// Make sure all lazy loaded images are visible - see #1169
+			data = 'data-' + (wo.lazyload_data_attribute || 'original');
+			$table.find('img[' + data + ']').each(function(){
+				$this = $(this);
+				$this.attr('src', $this.attr(data));
 			});
 
 			// === rows ===
