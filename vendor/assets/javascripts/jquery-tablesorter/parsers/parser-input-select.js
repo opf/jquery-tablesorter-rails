@@ -1,4 +1,4 @@
-/*! Parser: input & select - updated 1/15/2016 (v2.25.2) *//*
+/*! Parser: input & select - updated 4/29/2016 (v2.25.9) *//*
  * for jQuery 1.7+ & tablesorter 2.7.11+
  * Demo: http://mottie.github.com/tablesorter/docs/example-widget-grouping.html
  */
@@ -52,7 +52,7 @@
 		is : function() {
 			return false;
 		},
-		format : function( txt, table, cell, cellIndex ) {
+		format : function( txt, table, cell ) {
 			var $cell = $( cell ),
 				wo = table.config.widgetOptions,
 				// returning plain language here because this is what is shown in the
@@ -128,7 +128,8 @@
 			}
 		},
 		updateHeaderCheckbox = function( $table, checkboxClass ) {
-			var $rows = $table.children( 'tbody' ).children( ':visible' ), // (include child rows?)
+			var ua = window.navigator.userAgent,
+				$rows = $table.children( 'tbody' ).children( ':visible' ), // (include child rows?)
 				len = $rows.length;
 			// set indeterminate state on header checkbox
 			$table.children( 'thead' ).find( 'input[type="checkbox"]' ).each( function() {
@@ -139,6 +140,8 @@
 					this.checked = allChecked;
 					this.indeterminate = false;
 				} else {
+					// needed for IE
+					this.checked = !(ua.indexOf('Trident/') > -1 || ua.indexOf('Edge/') > -1);
 					this.indeterminate = true;
 				}
 			});
@@ -221,7 +224,7 @@
 				$( this )
 				.off( namespace )
 				.on( 'tablesorter-ready' + namespace, function() {
-					var checkboxClass, $rows, len,
+					var checkboxClass,
 						$table = $( this ),
 						c = $table.length && $table[ 0 ].config;
 					if ( !$.isEmptyObject( c ) ) {
@@ -235,8 +238,10 @@
 				.children( 'thead' )
 				.off( namespace )
 				// modified from http://jsfiddle.net/abkNM/6163/
-				.on( 'change' + namespace, 'input[type="checkbox"]', function( event ) {
-					var undef, onlyVisible, column, $target, isParsed, $row, checkboxClass,
+				// click needed for IE; a change isn't fired when going from an indeterminate checkbox to
+				// either checked or unchecked
+				.on( 'click' + namespace + ' change' + namespace, 'input[type="checkbox"]', function( event ) {
+					var undef, onlyVisible, column, $target, isParsed, checkboxClass,
 						$checkbox = $( this ),
 						$table = $checkbox.closest( 'table' ),
 						c = $table.length && $table[ 0 ].config,
@@ -252,22 +257,21 @@
 							.children( ':nth-child(' + ( column + 1 ) + ')' )
 							.find( 'input[type="checkbox"]' )
 							.prop( 'checked', isChecked );
-						if ( !isParsed ) {
-							// add checkbox class names
-							checkboxClass = c.checkboxClass || 'checked';
-							$target.each(function(){
-								$row = $(this).closest('tr');
-								toggleRowClass( $(this).closest( 'tr' ), checkboxClass, column, isChecked );
-							});
-							updateHeaderCheckbox( $table, checkboxClass );
-							updateServer( event, $table, $target );
-							$table[ 0 ].tablesorterBusy = false;
-						} else {
+						// add checkbox class names to row
+						checkboxClass = c.checkboxClass || 'checked';
+						$target.each( function() {
+							toggleRowClass( $( this ).closest( 'tr' ), checkboxClass, column, isChecked );
+						});
+						updateHeaderCheckbox( $table, checkboxClass );
+						if ( isParsed ) {
 							// only update cache if checkboxes are being sorted
 							$.tablesorter.update( c, undef, function() {
 								updateServer( event, $table, $target );
 								$table[ 0 ].tablesorterBusy = false;
 							});
+						} else {
+							updateServer( event, $table, $target );
+							$table[ 0 ].tablesorterBusy = false;
 						}
 						// needed for IE8
 						return true;

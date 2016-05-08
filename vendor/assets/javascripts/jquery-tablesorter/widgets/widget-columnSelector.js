@@ -1,4 +1,4 @@
-/* Widget: columnSelector (responsive table widget) - updated 2/15/2016 (v2.25.4) *//*
+/* Widget: columnSelector (responsive table widget) - updated 4/29/2016 (v2.25.9) *//*
  * Requires tablesorter v2.8+ and jQuery 1.7+
  * by Justin Hallett & Rob Garrison
  */
@@ -67,19 +67,20 @@
 		},
 
 		refreshColumns: function( c, optName, optState ) {
-			var i, arry,
+			var i, arry, $el, val,
+				colSel = c.selector,
 				isArry = $.isArray(optState || optName),
 				wo = c.widgetOptions;
 			// see #798
-			if (typeof optName !== 'undefined' && c.selector.$container.length) {
+			if (typeof optName !== 'undefined' && colSel.$container.length) {
 				// pass "selectors" to update the all of the container contents
 				if ( optName === 'selectors' ) {
-					c.selector.$container.empty();
+					colSel.$container.empty();
 					tsColSel.setupSelector(c, wo);
 					tsColSel.setupBreakpoints(c, wo);
 					// if optState is undefined, maintain the current "auto" state
 					if ( typeof optState === 'undefined' ) {
-						optState = c.selector.auto;
+						optState = colSel.auto;
 					}
 				}
 				// pass an array of column zero-based indexes to turn off auto mode & toggle selected columns
@@ -90,20 +91,24 @@
 						arry[i] = parseInt(v, 10);
 					});
 					for (i = 0; i < c.columns; i++) {
-						c.selector.$container
-							.find('input[data-column=' + i + ']')
-							.prop('checked', $.inArray( i, arry ) >= 0 );
+						val = $.inArray( i, arry ) >= 0;
+						$el = colSel.$container.find( 'input[data-column=' + i + ']' );
+						if ( $el.length ) {
+							$el.prop( 'checked', val );
+							colSel.states[i] = val;
+						}
 					}
 				}
 				// if passing an array, set auto to false to allow manual column selection & update columns
 				// refreshColumns( c, 'auto', true ) === refreshColumns( c, true );
-				tsColSel
-					.updateAuto( c, wo, c.selector.$container.find('input[data-column="auto"]')
-					.prop('checked', optState === true || optName === true || optName === 'auto' && optState !== false) );
+				val = optState === true || optName === true || optName === 'auto' && optState !== false;
+				$el = colSel.$container.find( 'input[data-column="auto"]' ).prop( 'checked', val );
+				tsColSel.updateAuto( c, wo, $el );
 			} else {
 				tsColSel.updateBreakpoints(c, wo);
 				tsColSel.updateCols(c, wo);
 			}
+			tsColSel.saveValues( c, wo );
 			tsColSel.adjustColspans( c, wo );
 		},
 
@@ -224,9 +229,7 @@
 						$(this).prop( 'checked', indx === 'auto' ? colSel.auto : colSel.states[indx] );
 					});
 			}
-			if (wo.columnSelector_saveColumns && ts.storage) {
-				ts.storage( c.$table[0], 'tablesorter-columnSelector-auto', { auto : colSel.auto } );
-			}
+			tsColSel.saveValues( c, wo );
 			tsColSel.adjustColspans( c, wo );
 			// trigger columnUpdate if auto is true (it gets skipped in updateCols()
 			if (colSel.auto) {
@@ -270,7 +273,7 @@
 				}
 			}
 			// only 6 breakpoints (same as jQuery Mobile)
-			for (priority = 0; priority < 6; priority++){
+			for (priority = 0; priority < wo.columnSelector_maxPriorities; priority++){
 				/*jshint loopfunc:true */
 				breaks = [];
 				c.$headers.filter('[' + wo.columnSelector_priority + '=' + (priority + 1) + ']').each(function(){
@@ -317,9 +320,7 @@
 			if (colSel.$style) {
 				colSel.$style.prop('disabled', false).text( styles.length ? styles.join(',') + ' { display: none; }' : '' );
 			}
-			if (wo.columnSelector_saveColumns && ts.storage) {
-				ts.storage( c.$table[0], 'tablesorter-columnSelector', colSel.states );
-			}
+			tsColSel.saveValues( c, wo );
 			tsColSel.adjustColspans( c, wo );
 			c.$table.triggerHandler(wo.columnSelector_updated);
 		},
@@ -380,11 +381,19 @@
 						}
 					}
 					if ( span ) {
-						$cell.removeClass( wo.filter_filteredRow )[0].colSpan = span;
+						$cell.removeClass( wo.filter_filteredRow || 'filtered' )[0].colSpan = span;
 					} else {
-						$cell.addClass( wo.filter_filteredRow );
+						$cell.addClass( wo.filter_filteredRow || 'filtered' );
 					}
 				}
+			}
+		},
+
+		saveValues : function( c, wo ) {
+			if ( wo.columnSelector_saveColumns && ts.storage ) {
+				var colSel = c.selector;
+				ts.storage( c.$table[0], 'tablesorter-columnSelector-auto', { auto : colSel.auto } );
+				ts.storage( c.$table[0], 'tablesorter-columnSelector', colSel.states );
 			}
 		},
 
@@ -462,6 +471,9 @@
 			// see http://view.jquerymobile.com/1.3.2/dist/demos/widgets/table-column-toggle/#Applyingapresetbreakpoint
 			// *** set to false to disable ***
 			columnSelector_breakpoints : [ '20em', '30em', '40em', '50em', '60em', '70em' ],
+			// maximum number of priority settings; if this value is changed (especially increased),
+			// then make sure to modify the columnSelector_breakpoints - see #1204
+			columnSelector_maxPriorities : 6,
 			// data attribute containing column priority
 			// duplicates how jQuery mobile uses priorities:
 			// http://view.jquerymobile.com/1.3.2/dist/demos/widgets/table-column-toggle/
@@ -483,7 +495,7 @@
 			if (csel.$popup) { csel.$popup.empty(); }
 			csel.$style.remove();
 			csel.$breakpoints.remove();
-			$( c.namespace + 'columnselectorHasSpan' ).removeClass( wo.filter_filteredRow );
+			$( c.namespace + 'columnselectorHasSpan' ).removeClass( wo.filter_filteredRow || 'filtered' );
 			c.$table.off('updateAll' + namespace + ' update' + namespace);
 		}
 
