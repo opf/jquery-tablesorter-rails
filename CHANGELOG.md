@@ -1,6 +1,10 @@
 Changelog
 ===
 
+#### v1.21.1 (2016-05-18)
+
+* Upgrade tablesorter to v2.26.1
+
 #### v1.21.0 (2016-05-08)
 
 * Upgrade tablesorter to v2.26.0

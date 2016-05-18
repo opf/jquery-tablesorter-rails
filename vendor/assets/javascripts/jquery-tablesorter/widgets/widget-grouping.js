@@ -169,12 +169,13 @@
 		},
 
 		groupHeaderHTML : function( c, wo, data ) {
+			var name = ( data.currentGroup || '' ).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 			return '<tr class="group-header ' + c.selectorRemove.slice(1) +
 				'" unselectable="on" ' + ( c.tabIndex ? 'tabindex="0" ' : '' ) + 'data-group-index="' +
 				( data.groupIndex++ ) + '">' +
 				'<td colspan="' + c.columns + '">' +
 					( wo.group_collapsible ? '<i/>' : '' ) +
-					'<span class="group-name">' + data.currentGroup + '</span>' +
+					'<span class="group-name">' + name + '</span>' +
 					'<span class="group-count"></span>' +
 				'</td></tr>';
 		},
@@ -197,12 +198,12 @@
 			return savedGroup;
 		},
 		findColumnGroups : function( c, wo, data ) {
-			var tbodyIndex, norm_rows, $row, rowIndex, end,
+			var tbodyIndex, norm_rows, $row, rowIndex, end, undef,
 				hasPager = ts.hasWidget( c.table, 'pager' );
 			data.groupIndex = 0;
 			for ( tbodyIndex = 0; tbodyIndex < c.$tbodies.length; tbodyIndex++ ) {
 				norm_rows = c.cache[ tbodyIndex ].normalized;
-				data.group = ''; // clear grouping across tbodies
+				data.group = undef; // clear grouping across tbodies
 				rowIndex = hasPager ? c.pager.startRow - 1 : 0;
 				end = hasPager ? c.pager.endRow : norm_rows.length;
 				for ( ; rowIndex < end; rowIndex++ ) {
