@@ -1,8 +1,8 @@
-# jQuery Table Sorter plugin for Rails
+# jQuery tablesorter plugin for Rails
 
 [![Gem Version](https://badge.fury.io/rb/jquery-tablesorter.png)](http://badge.fury.io/rb/jquery-tablesorter)
 
-Simple integration of jquery-tablesorter into the asset pipeline.
+Simple integration of jQuery tablesorter ([Mottie's fork]) into the asset pipeline.
 
 Current tablesorter version: 2.27.6 (9/1/2016), [documentation]
 
@@ -24,7 +24,7 @@ Or install it yourself as:
 
 ## Requirements
 
-It should work with Rails 3.2 and higher (tested up to 4.2) as well as with ruby 1.9.3 - 2.3.x.
+It should work with Rails 3.2 and higher (tested up to 5) as well as with ruby 1.9.3 - 2.3.x.
 Each release is always tested with the latest version of both.
 
 ## Usage
