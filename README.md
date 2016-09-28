@@ -49,7 +49,10 @@ Or you can include single file with:
 //= require jquery-tablesorter/widgets/widget-repeatheaders
 //= require jquery-tablesorter/parsers/parser-metric
 //= require jquery-tablesorter/extras/jquery.quicksearch
+//= require jquery-tablesorter/beta-testing/pager-custom-controls
 ```
+
+Please note that files in the beta-testing directory might move into the stable tablesorter or get renamed with upcoming tablesorter releases and thus could have to be required in an updated way after upgrading this gem.
 
 ### Stylesheet files
 

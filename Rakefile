@@ -44,6 +44,12 @@ namespace :jquery_tablesorter do
       copy_files(files, folder_javascript_dir)
     end
 
+    # beta-testing
+    #
+    beta_dir   = File.join(javascript_dir, 'beta-testing')
+    beta_files = Dir.glob(File.join('tablesorter', 'beta-testing', '*.js')).reject{|file| file =~ /.min.js\Z/}
+    copy_files(beta_files, beta_dir)
+
   end
 
   def copy_files(files, target_dir)
