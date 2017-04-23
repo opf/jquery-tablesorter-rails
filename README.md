@@ -4,7 +4,7 @@
 
 Simple integration of jQuery tablesorter ([Mottie's fork]) into the asset pipeline.
 
-Current tablesorter version: 2.28.7 (4/4/2017), [documentation]
+Current tablesorter version: 2.28.8 (4/18/2017), [documentation]
 
 Any issue associated with the js/css files, please report to [Mottie's fork].
 
@@ -24,7 +24,7 @@ Or install it yourself as:
 
 ## Requirements
 
-It should work with Rails 3.2 and higher (tested up to 5) as well as with ruby 1.9.3 - 2.3.x.
+It should work with Rails 3.2 and higher (tested up to 5) as well as with ruby 1.9.3 - 2.4.x.
 Each release is always tested with the latest version of both.
 
 ## Usage

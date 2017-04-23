@@ -1,6 +1,11 @@
 Changelog
 ===
 
+#### v1.23.8 (2017-04-23)
+
+* Upgrade tablesorter to v2.28.8
+* Readme: Updated ruby version
+
 #### v1.23.7 (2017-04-09)
 
 * Upgrade tablesorter to v2.28.7
