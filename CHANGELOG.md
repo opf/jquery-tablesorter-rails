@@ -1,6 +1,10 @@
 Changelog
 ===
 
+#### v1.24.0 (2017-10-09)
+
+* Upgrade tablesorter to v2.29.0
+
 #### v1.23.15 (2017-07-09)
 
 * Hotfix for adding v2.28.14 instead of v2.28.15 asset data in previous release
