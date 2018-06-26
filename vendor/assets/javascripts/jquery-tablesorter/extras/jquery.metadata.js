@@ -92,8 +92,13 @@ $.extend({
 
 			if ( data.indexOf( '{' ) <0 ) { data = "{" + data + "}"; }
 
-			/*jshint evil:true */
-			data = eval("(" + data + ")");
+			try {
+				// Enforce data to be JSON parseable
+                		data = JSON.parse(data);
+			} catch(e) {
+                		console.warn("Failed to parse metadata " + e);
+                		data = {}
+			}
 
 			$.data( elem, settings.single, data );
 			return data;
